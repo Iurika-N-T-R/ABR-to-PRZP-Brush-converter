@@ -1,0 +1,272 @@
+{
+    "blend-properties": {
+        "flow": 1,
+        "mix-in": 0,
+        "mix-in dilution": 0,
+        "mix-wet": false,
+        "smudge-amount": 1,
+        "strength": 0.20000000298023224
+    },
+    "display-name": "",
+    "dynamics-properties": {
+        "pressure - effects dilution": false,
+        "pressure - effects flow": true,
+        "pressure - effects head depth": false,
+        "pressure - effects scatter": false,
+        "pressure - effects size": false,
+        "pressure - effects texture": true,
+        "pressure profile - dilution": [
+            0.20000000298023224,
+            0,
+            0.4000000059604645,
+            0.10000000149011612,
+            0.6000000238418579,
+            0.8999999761581421,
+            0.800000011920929,
+            1
+        ],
+        "pressure profile - flow": [
+            0,
+            1,
+            0.33000001311302185,
+            0.3399999737739563,
+            1,
+            0
+        ],
+        "pressure profile - head depth": [
+            0,
+            0,
+            0.5,
+            0.5,
+            1,
+            1
+        ],
+        "pressure profile - scatter": [
+            0,
+            1,
+            0.5,
+            0.8999999761581421,
+            1,
+            0.6000000238418579
+        ],
+        "pressure profile - size": [
+            0,
+            1,
+            0.33000001311302185,
+            0.3399999737739563,
+            1,
+            0
+        ],
+        "pressure profile - texture": [
+            0,
+            0.5,
+            0.5,
+            0.30000001192092896,
+            1,
+            0
+        ],
+        "tilt - effects dilution": false,
+        "tilt - effects flow": false,
+        "tilt - effects head depth": false,
+        "tilt - effects scatter": false,
+        "tilt - effects size": true,
+        "tilt - effects texture": true,
+        "tilt - gradation": 0.800000011920929,
+        "tilt - offset": -0.8199999928474426,
+        "tilt profile - dilution": [
+            0.20000000298023224,
+            1,
+            0.4000000059604645,
+            0.8999999761581421,
+            0.6000000238418579,
+            0.10000000149011612,
+            0.800000011920929,
+            0
+        ],
+        "tilt profile - flow": [
+            0,
+            0,
+            0.5,
+            0,
+            1,
+            0.75
+        ],
+        "tilt profile - head depth": [
+            0,
+            1,
+            1,
+            0
+        ],
+        "tilt profile - scatter": [
+            0,
+            1,
+            0.5,
+            1,
+            1,
+            0.3999999761581421
+        ],
+        "tilt profile - size": [
+            0,
+            1,
+            0.5,
+            1,
+            1,
+            0.75
+        ],
+        "tilt profile - texture": [
+            0,
+            0,
+            0.5,
+            0.19999998807907104,
+            1,
+            0.6000000238418579
+        ],
+        "velocity - effects dilution": false,
+        "velocity - effects flow": false,
+        "velocity - effects head depth": false,
+        "velocity - effects scatter": false,
+        "velocity - effects size": false,
+        "velocity - effects texture": false,
+        "velocity profile - dilution": [
+            0,
+            0,
+            1,
+            1
+        ],
+        "velocity profile - flow": [
+            0,
+            0,
+            0.5,
+            0.699999988079071,
+            1,
+            1
+        ],
+        "velocity profile - head depth": [
+            0,
+            1,
+            1,
+            0
+        ],
+        "velocity profile - scatter": [
+            0,
+            0,
+            0.5,
+            0.10000002384185791,
+            1,
+            0.3999999761581421
+        ],
+        "velocity profile - size": [
+            0,
+            0,
+            0.5,
+            0.699999988079071,
+            1,
+            1
+        ],
+        "velocity profile - texture": [
+            0,
+            1,
+            0.5,
+            0.5,
+            1,
+            0
+        ]
+    },
+    "head-properties": {
+        "angle": 0.005162179470062256,
+        "depth": 0,
+        "flow": 1,
+        "rotation": 0,
+        "screen-aligned": false,
+        "softness": 0,
+        "spacing": 0.4271419942378998,
+        "structure": 0,
+        "style": 0,
+        "use-trajectory": false
+    },
+    "jitter-properties": {
+        "angle": 0,
+        "color-brightness": 0,
+        "color-hue": 0,
+        "color-saturation": 0,
+        "color-start brightness": 0,
+        "color-start hue": 0,
+        "color-start saturation": 0,
+        "flow": 0,
+        "scatter": 0,
+        "size": 0.6299999952316284,
+        "start-angle": 0,
+        "texture-angle": 0,
+        "texture-position": 0,
+        "texture-scale": 0,
+        "texture-start-position": 0
+    },
+    "parent": 3,
+    "source-properties": {
+        "custom-head": "",
+        "custom-stroke texture": "",
+        "head": "",
+        "head - color": false,
+        "head - colorize": 1,
+        "head - conversion format": 1,
+        "head - profile": [
+            0,
+            1,
+            1,
+            0
+        ],
+        "stroke texture": "",
+        "stroke texture - color": false,
+        "stroke texture - colorize": 1,
+        "stroke texture - profile": [
+            0,
+            1,
+            1,
+            0
+        ]
+    },
+    "stroke-properties": {
+        "adhesion": 0,
+        "blend-opacity": 1,
+        "blend-size": 40,
+        "blendmode": 0,
+        "blendmode-intensity": 1,
+        "erase-opacity": 1,
+        "erase-size": 40,
+        "flow-profile": [
+            0,
+            0,
+            0.30000001192092896,
+            0,
+            1,
+            1
+        ],
+        "glaze-strokes": 0,
+        "has-flow-profile": false,
+        "has-size-profile": false,
+        "lazy-stroke": 0,
+        "paint-opacity": 1,
+        "paint-size": 50.409996032714844,
+        "size-maximum": 3,
+        "size-profile": [
+            0,
+            1,
+            0.5,
+            0,
+            1,
+            1
+        ],
+        "wet-edges": 0
+    },
+    "texture-properties": {
+        "angle": 0,
+        "invert": false,
+        "pressure": 0.6100000143051147,
+        "scale": 0.99054354429245,
+        "scale-size": false,
+        "softness": 0,
+        "stretch": 1,
+        "structure": 0,
+        "style": 1
+    }
+}

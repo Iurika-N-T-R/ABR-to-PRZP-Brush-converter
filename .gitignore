@@ -1,0 +1,6 @@
+# Brush samples are licensed no-redistribution; converted output derives from them.
+Samples/
+output/
+output-textured/
+*.log
+read this.txt
