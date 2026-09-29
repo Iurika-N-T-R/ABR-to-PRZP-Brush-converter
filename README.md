@@ -1,5 +1,12 @@
 # ABR → Infinite Painter brush converter
 
+![Node.js](https://img.shields.io/badge/node-%E2%89%A5%2020.10-339933?logo=nodedotjs&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
+![Input](https://img.shields.io/badge/input-Photoshop%20.abr-31A8FF)
+![Output](https://img.shields.io/badge/output-Infinite%20Painter%20.przp-E4405F)
+![Platforms](https://img.shields.io/badge/runs%20on-Linux%20%7C%20macOS%20%7C%20Windows%20%7C%20Termux-555)
+[![License: CC0-1.0](https://img.shields.io/badge/license-CC0--1.0-lightgrey)](LICENSE)
+
 Converts Photoshop brushes (`.abr`) into Infinite Painter brushes (`.prbr`) and a ready-to-import pack (`.przp`).
 
 It converts the brush tip images and also the brush behaviour: spacing, jitter, pressure and tilt dynamics, textures, stroke direction, color jitter and wet edges. The mappings were calibrated against real Infinite Painter packs and against test brushes checked in the app.
