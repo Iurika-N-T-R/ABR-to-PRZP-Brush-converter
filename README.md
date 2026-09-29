@@ -1,44 +1,125 @@
-# abr2painter
+# ABR → Infinite Painter brush converter
 
-Convertit des pinceaux Photoshop (`.abr`) en pinceaux Infinite Painter (`.prbr` + pack `.przp`).
+Converts Photoshop brushes (`.abr`) into Infinite Painter brushes (`.prbr`) and a ready-to-import pack (`.przp`).
 
-## Utilisation : une seule commande
+It converts the brush tip images and also the brush behaviour: spacing, jitter, pressure and tilt dynamics, textures, stroke direction, color jitter and wet edges. The mappings were calibrated against real Infinite Painter packs and against test brushes checked in the app.
+
+## Quick start
+
+Requires **Node.js 20.10 or newer**.
 
 ```bash
-./convert.sh mes-pinceaux.abr            # un fichier
-./convert.sh Samples/Photoshop           # tous les .abr d'un dossier (sous-dossiers compris)
-./convert.sh a.abr b.abr -o ~/Desktop/out
+git clone https://github.com/Iurika-N-T-R/ABR-to-PRZP-Brush-converter.git
+cd ABR-to-PRZP-Brush-converter
+bash convert.sh my-brushes.abr
 ```
 
-Le script fait tout, dans l'ordre :
+Then import `output/my-brushes/my-brushes.przp` into Infinite Painter.
 
-1. vérifie que Node.js ≥ 20.10 est installé ;
-2. lance `npm install` si c'est la première fois, ou si les dépendances ou les correctifs d'ag-psd ont changé ; sinon, réapplique juste les correctifs ;
-3. recompile si le code (`src/`) a changé ;
-4. convertit chaque `.abr` dans `output/<nom>/`.
+More examples:
 
-**Plus besoin de penser à `npm install` ni à `npm run build` : `./convert.sh` s'en charge.**
+```bash
+bash convert.sh a.abr b.abr                # several files
+bash convert.sh ~/Downloads/brushes/       # every .abr in a folder (recursive)
+bash convert.sh my-brushes.abr -o ~/out    # custom output folder (default: ./output)
+```
 
-Ensuite : importer `output/<nom>/<nom>.przp` dans Infinite Painter.
+`convert.sh` checks Node, installs dependencies only when needed, rebuilds only when the source changed, then converts. `node_modules/` is committed, so it also runs offline.
 
-## Sur une nouvelle machine (tablette Termux, autre PC)
+### Android (Termux)
 
-1. Installer Node.js : `pkg install nodejs` (Termux) ou https://nodejs.org
-2. Copier le dossier `Brush-converter/`, sans `node_modules/` ni `output/`
-3. `./convert.sh fichier.abr` : la première fois, l'installation se lance toute seule (connexion internet nécessaire)
+```bash
+pkg install nodejs git
+git clone https://github.com/Iurika-N-T-R/ABR-to-PRZP-Brush-converter.git
+cd ABR-to-PRZP-Brush-converter
+bash convert.sh my-brushes.abr
+termux-setup-storage                           # once, lets Termux write to shared storage
+cp output/*/*.przp ~/storage/downloads/        # Infinite Painter can import from Downloads
+```
 
-## Ce que contient la sortie
+Use `bash convert.sh`, not `./convert.sh`: Android often drops the execute permission on copied files.
+
+## Output
 
 ```text
-output/<nom>/
-├── <nom>.przp      # pack à importer
-├── brushes/*.prbr  # pinceaux un par un
-├── tips/*.png      # images des pinceaux en pleine résolution
-└── report.json     # convertis / partiels / échecs + fonctionnalités non supportées
+output/<name>/
+├── <name>.przp      # pack to import into Infinite Painter
+├── brushes/*.prbr   # one file per brush
+├── tips/*.png       # full-resolution brush tips (8-bit grayscale)
+└── report.json      # converted / partial / failed + unsupported features
+output/<name>.log    # per-brush warnings
 ```
 
-## Pour aller plus loin
+A brush is **partial** when some of its Photoshop features have no Infinite Painter equivalent; it still converts. **Failed** means nothing usable could be made from it.
 
-* `npm test` : tests (les `.abr` de test vont dans `Samples/`)
-* `node dist/cli.js fichier.abr -o sortie --json` : ajoute `abr.json` (dump du fichier ABR)
-* Tout le reste (format, correspondances, limites, avancement) : `Projet Convertisseur ABR.md`
+## What gets converted
+
+| Photoshop | Infinite Painter |
+|---|---|
+| Sampled tip (bitmap) | Custom head (capped at 2048 px) |
+| Computed round tip | Built-in round head, softness = 1 − hardness |
+| Erodible / bristle tips | Approximated as a round head |
+| Spacing | Spacing (× 0.5, range 0.5 %–200 %) |
+| Tip angle | Head angle |
+| Angle control "Direction" | Rotation: the head follows the stroke |
+| Angle control "Rotation" / "Pen Tilt" | Stylus rotation |
+| Size / angle / opacity jitter | Size / angle / flow jitter |
+| Scatter | Scatter (× 0.1) |
+| Size, opacity, flow driven by pressure or tilt | Pressure / tilt dynamics, with curves built from the Photoshop minimum |
+| Texture (pattern), scale, depth, invert | Custom stroke texture (depth mapped inverted, as the app expects) |
+| Color dynamics (hue, saturation, brightness) | Color jitter, per stroke or per stamp |
+| Wet edges | Wet edges |
+
+Each brush also gets a 512×128 stroke preview in Infinite Painter's own style.
+
+**Not supported** (reported as warnings): dual brush, scatter count, roundness dynamics, flip, noise, texture blend modes and brightness/contrast, "Initial Direction" and "Fade" controls, mixer and smudge tools.
+
+**Readable ABR files:** Photoshop 7 and newer (ABR v6–v10). Very old ABR files (v1–v2) and 16-bit RLE tips are not supported by the underlying parser.
+
+## Stack
+
+| Layer | Choice |
+|---|---|
+| Language | TypeScript (strict), ES modules |
+| Runtime | Node.js ≥ 20.10 |
+| ABR parsing | [ag-psd](https://github.com/Agamnentzar/ag-psd), plus two bug fixes applied on install (`scripts/patch-ag-psd.mjs`) |
+| Zip writing (`.prbr`, `.przp`) | [JSZip](https://stuk.github.io/jszip/) |
+| PNG encoding | [pngjs](https://github.com/pngjs/pngjs) |
+| Hashing | `node:crypto` (BLAKE2b-512, used by Infinite Painter to reference heads and textures) |
+| CLI | `node:util` `parseArgs` |
+| Tests | `node:test` run through [tsx](https://github.com/privatenumber/tsx) |
+| Launcher | Bash (`convert.sh`) |
+
+## How it works
+
+```text
+.abr ──ag-psd──▶ Photoshop brush ──photoshop.ts──▶ universal brush ──infinite-painter.ts──▶ .prbr / .przp
+                   (abr-reader.ts)                   (universal.ts)
+```
+
+| File | Role |
+|---|---|
+| `src/abr-reader.ts` | Reads the ABR; renders tips, textures and previews to PNG |
+| `src/universal.ts` | Format-independent brush model |
+| `src/photoshop.ts` | Photoshop → universal mapping, with a warning for each unsupported feature |
+| `src/infinite-painter.ts` | Universal → Infinite Painter `properties.json`, `.prbr` and `.przp` |
+| `src/template-properties.json` | A real Infinite Painter brush used as the base; only mapped fields are changed |
+| `src/convert.ts` | Converts a whole ABR and builds the report |
+| `src/cli.ts` | Command-line entry point |
+
+## Development
+
+```bash
+npm install
+npm run build                          # compile src/ to dist/
+npm test                               # unit + end-to-end tests
+node dist/cli.js file.abr -o out --json   # also writes abr.json (dump of the ABR, without pixels)
+```
+
+The end-to-end test needs `Samples/Photoshop/Size Flow Gang.abr` locally; it is skipped otherwise. Sample brushes are not included in this repository because their licenses forbid redistribution.
+
+Format notes, calibration results and the full mapping between the app's settings and `properties.json` fields are in `Projet Convertisseur ABR.md` (French).
+
+## License
+
+See [LICENSE](LICENSE).
