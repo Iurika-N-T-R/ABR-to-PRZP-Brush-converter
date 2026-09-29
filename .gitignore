@@ -4,3 +4,4 @@ output/
 output-textured/
 *.log
 read this.txt
+node_modules/
