@@ -35,8 +35,9 @@ if (values.json) {
     await writeFile(join(out, 'abr.json'), JSON.stringify({ samples, patterns: textures, brushes }, null, 2));
 }
 for (const b of res.report.brushes) {
+    // "warn" only for real losses (what makes a brush partial); approximations and minor differences are "info".
     for (const w of b.warnings)
-        console.warn(JSON.stringify({ level: 'warn', brush: b.name, unsupported: w }));
+        console.warn(JSON.stringify({ level: w.level === 'lost' ? 'warn' : 'info', brush: b.name, [w.level]: w.feature }));
 }
 const { totalBrushes, converted, partial, failed } = res.report;
 console.log(JSON.stringify({ level: 'info', out, totalBrushes, converted, partial, failed }));

@@ -315,6 +315,19 @@ Non affichés (réglages des modes gomme / mélangeur) : `blend-size`, `blend-op
 * Espacement : même unité que Photoshop ; le ×0,5 vient seulement des choix de l'artiste Syntetyc → à revalider à l'œil.
 * Bords humides : 0,15 = environ 30 % dans l'app.
 
+## Partiels → complets (2026-09-30)
+
+Chaque avertissement a maintenant un **niveau** ; seul « perdu » rend un pinceau partiel :
+
+* **exact** : rondeur statique (tête écrasée, ou tête ovale générée pour les ronds), flip fixe (image miroir), luminosité/contraste de texture (appliqués à l'image), profondeur minimum de texture (début de la courbe), dispersion à la pression (« Dispersion › Pression »).
+* **approximé** : dual brush → texture (ou cuit dans la tête si la texture est déjà prise : tampons du 2ᵉ tip avec jitter, interpolation bilinéaire), nombre de tampons → espacement ÷ n, rondeur à la pression → taille à la pression, variation de rondeur → variation de taille, tips erodible/bristle → rond, modes de fusion de texture, dispersion deux axes, « Initial Direction » → Rotation, « Stylus Wheel » → Rotation du stylet.
+* **mineur** (log seulement) : flip aléatoire par tampon, variation du nombre, bruit, pureté, brush pose.
+* **perdu** : contrôles « Fade », couleur avant-plan/arrière-plan, outils mélangeur/doigt.
+
+Bugs corrigés au passage : « roundnessDynamics » signalé quand le réglage était absent ; « scatter bothAxes » signalé avec une dispersion à 0 ; « texture depthMinimum » signalé sans dynamique de profondeur ; rondeur des pinceaux image ignorée sans avertissement.
+
+Résultat sur 156 pinceaux (Size Flow Gang, Syntetyc x2) : **34 → 154 complets**, 122 → 2 partiels (« Fade »), 0 échec. Tests : 9/9.
+
 ## À vérifier dans l'app
 
 * [ ] Import de `output/*.przp` dans Infinite Painter.

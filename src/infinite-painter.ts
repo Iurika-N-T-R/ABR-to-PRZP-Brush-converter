@@ -32,11 +32,14 @@ export function toProperties(b: UniversalBrush, headPng: Buffer | undefined, tex
         t.invert = b.texture.invert;
         // CAL 6: the app's texture "Profondeur" slider shows 1 - pressure (pressure 0.55 -> Profondeur 45).
         t.pressure = 1 - b.texture.depth;
+        // A dual brush's second tip scales with the brush, as in Photoshop.
+        if (b.texture.fromTip) t['scale-size'] = true;
     }
 
     // Paired pack (Syntetyc Environment, same author for PS and IP): PS 1% (its minimum) became IP 0.005 (its minimum)
     // in 8/10 brushes, the overall median ratio is 0.5. IP range 0.005..2.
-    p['head-properties'].spacing = clamp(b.spacing * 0.5, 0.005, 2);
+    // IP stamps once per step; PS "Count" stamps n times, so n× tighter spacing keeps the same density.
+    p['head-properties'].spacing = clamp((b.spacing * 0.5) / Math.max(1, b.scatter?.count ?? 1), 0.005, 2);
     // Radians: the stock Proko Pencil brush stores exactly π.
     p['head-properties'].angle = (b.angle * Math.PI) / 180;
     // Calibration pack, tested with a stylus: `rotation` = 1 turns the head with the stroke direction (CAL 4, circle),
@@ -66,7 +69,7 @@ export function toProperties(b: UniversalBrush, headPng: Buffer | undefined, tex
 
     const d = p['dynamics-properties'] as Record<string, unknown>;
     for (const k of Object.keys(d)) if (k.includes(' - effects ')) d[k] = false;
-    const drive = (dyn: Dynamics | undefined, target: 'size' | 'flow' | 'texture') => {
+    const drive = (dyn: Dynamics | undefined, target: 'size' | 'flow' | 'texture' | 'scatter') => {
         if (dyn?.control !== 'pressure' && dyn?.control !== 'tilt') return;
         d[`${dyn.control} - effects ${target}`] = true;
         // IP profiles are [x0,y0,x1,y1…] with Y inverted: [0, 1-m, 1, 0] rises linearly from m to 100%.
@@ -77,13 +80,13 @@ export function toProperties(b: UniversalBrush, headPng: Buffer | undefined, tex
     drive(b.opacityDynamics, 'flow');
     drive(b.flowDynamics, 'flow');
     drive(b.texture?.depthDynamics, 'texture');
+    drive(b.scatter?.dynamics, 'scatter');
     return p;
 }
 
 export async function writePrbr(b: UniversalBrush, headPng: Buffer | undefined, previewPng: Buffer, texturePng?: Buffer): Promise<Buffer> {
     const zip = new JSZip();
     zip.file('properties.json', JSON.stringify(toProperties(b, headPng, texturePng)));
-    // ponytail: preview is the tip image, not a rendered stroke like IP's own 512x128 previews.
     zip.file('preview', previewPng);
     if (headPng) zip.file('head', headPng);
     if (texturePng && b.texture) zip.file('texture', texturePng);

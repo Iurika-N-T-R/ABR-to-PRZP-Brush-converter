@@ -72,7 +72,7 @@ for f in "${FILES[@]}"; do
     else
         ko=$((ko + 1))
         echo "  ✗ failed: $f" >&2
-        grep -v '"level":"warn"' "$log" | tail -8 >&2
+        grep -v '"level":"\(warn\|info\)"' "$log" | tail -8 >&2
     fi
 done
 echo "✓ $ok file(s) converted, $ko failed → $OUT/ (import the .przp of each folder into Infinite Painter)"

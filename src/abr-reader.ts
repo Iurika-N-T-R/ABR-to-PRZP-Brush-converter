@@ -55,9 +55,14 @@ export function shrink(data: Uint8Array, w: number, h: number, ch: number, max =
     return { data: out, width: W, height: H };
 }
 
+// PS texture brightness (-150..150) and contrast (-50..100) as a linear pixel adjustment around mid-gray.
+const adjust = (v: number, brightness: number, contrast: number) =>
+    Math.min(255, Math.max(0, Math.round((v - 128) * (1 + contrast / 100) + 128 + brightness)));
+
 // Stroke texture as a plain image, like the textures Infinite Painter imports; grayscale patterns stay 8-bit gray.
-export function patternToPng(p: Pattern): Buffer {
-    const { data, width, height } = shrink(p.rgba, p.width, p.height, 4);
+export function patternToPng(p: Pattern, brightness = 0, contrast = 0): Buffer {
+    const { data: src, width, height } = shrink(p.rgba, p.width, p.height, 4);
+    const data = brightness || contrast ? src.map((v, i) => (i % 4 === 3 ? v : adjust(v, brightness, contrast))) : src;
     let gray = true;
     for (let i = 0; gray && i < data.length; i += 4) gray = data[i] === data[i + 1] && data[i] === data[i + 2];
     const png = new PNG({ width, height });
@@ -65,18 +70,77 @@ export function patternToPng(p: Pattern): Buffer {
     return PNG.sync.write(png, { colorType: gray ? 0 : 2 });
 }
 
-// Procedural round tip (IP draws the real one itself); used to render previews of headless brushes.
-export function roundTip(hardness: number, size = 64): Tip {
+// Round (or, with roundness < 1, elliptical) tip. Round ones only feed previews, IP draws its own round head;
+// elliptical ones become a real head since IP's procedural head can't be squashed.
+export function roundTip(hardness: number, size = 64, roundness = 1): Tip {
     const r = size / 2;
+    const h = Math.max(1, Math.round(size * roundness));
     const edge = Math.max(1e-3, 1 - hardness);
-    const alpha = new Uint8Array(size * size);
-    for (let y = 0; y < size; y++) {
+    const alpha = new Uint8Array(size * h);
+    for (let y = 0; y < h; y++) {
         for (let x = 0; x < size; x++) {
-            const d = Math.hypot(x + 0.5 - r, y + 0.5 - r) / r;
+            const d = Math.hypot(x + 0.5 - r, (y + 0.5 - h / 2) / roundness) / r;
             alpha[y * size + x] = Math.round(255 * Math.min(1, Math.max(0, (1 - d) / edge)));
         }
     }
-    return { id: 'round', width: size, height: size, alpha };
+    return { id: 'round', width: size, height: h, alpha };
+}
+
+// PS tip roundness squashes the tip vertically (before the angle rotates it), flips mirror it.
+export function transformTip(tip: Tip, roundness = 1, flip?: { x: boolean; y: boolean }): Tip {
+    const w = tip.width, h = Math.max(1, Math.round(tip.height * roundness));
+    const alpha = new Uint8Array(w * h);
+    for (let Y = 0; Y < h; Y++) {
+        const y0 = Math.floor((Y * tip.height) / h), y1 = Math.max(y0 + 1, Math.floor(((Y + 1) * tip.height) / h));
+        const dy = flip?.y ? h - 1 - Y : Y;
+        for (let x = 0; x < w; x++) {
+            let sum = 0;
+            for (let y = y0; y < y1; y++) sum += tip.alpha[y * w + x]!;
+            alpha[dy * w + (flip?.x ? w - 1 - x : x)] = Math.round(sum / (y1 - y0));
+        }
+    }
+    return { id: tip.id, width: w, height: h, alpha };
+}
+
+// Bilinear read of a tip's alpha at fractional pixel (u, v); 0 outside.
+function sample(t: Tip, u: number, v: number): number {
+    if (u < -0.5 || v < -0.5 || u > t.width - 0.5 || v > t.height - 0.5) return 0;
+    const x = Math.min(t.width - 1, Math.max(0, u)), y = Math.min(t.height - 1, Math.max(0, v));
+    const x0 = Math.floor(x), y0 = Math.floor(y), x1 = Math.min(t.width - 1, x0 + 1), y1 = Math.min(t.height - 1, y0 + 1);
+    const fx = x - x0, fy = y - y0, a = (xx: number, yy: number) => t.alpha[yy * t.width + xx]!;
+    return (a(x0, y0) * (1 - fx) + a(x1, y0) * fx) * (1 - fy) + (a(x0, y1) * (1 - fx) + a(x1, y1) * fx) * fy;
+}
+
+// Dual brush baked into the head. Like Photoshop, the second tip (sized `ratio` × the head) is stamped along its
+// spacing with jitter; the union of those stamps masks the head. Static where PS re-scatters it on every stamp.
+export function maskWithTip(head: Tip, mask: Tip, ratio: number, spacing = 1): Tip {
+    const W = head.width, H = head.height;
+    const mw = Math.max(2, W * ratio), mh = Math.max(2, (mw * mask.height) / mask.width);
+    const cover = new Float32Array(W * H);
+    const stamp = (ox: number, oy: number) => {
+        const left = ox - mw / 2, top = oy - mh / 2;
+        for (let y = Math.max(0, Math.floor(top)); y < Math.min(H, Math.ceil(top + mh)); y++) {
+            for (let x = Math.max(0, Math.floor(left)); x < Math.min(W, Math.ceil(left + mw)); x++) {
+                const m = sample(mask, ((x + 0.5 - left) / mw) * mask.width - 0.5, ((y + 0.5 - top) / mh) * mask.height - 0.5) / 255;
+                if (m > cover[y * W + x]!) cover[y * W + x] = m;
+            }
+        }
+    };
+    if (mw >= W && mh >= H) stamp(W / 2, H / 2); // one second-tip stamp already covers the whole head
+    else {
+        let seed = 12345; // fixed seed: the same ABR always gives the same brush
+        const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647 - 0.5;
+        const sx = mw * Math.min(1, Math.max(0.25, spacing)), sy = (sx * mh) / mw;
+        for (let cy = 0; cy < H + sy; cy += sy) for (let cx = 0; cx < W + sx; cx += sx) stamp(cx + rnd() * sx, cy + rnd() * sy);
+    }
+    return { ...head, alpha: head.alpha.map((a, i) => Math.round(a * cover[i]!)) };
+}
+
+// A tip used as a texture (dual brush stand-in): painted areas white, like the high points of a PS height texture.
+export function tipAsPattern(tip: Tip): Pattern {
+    const rgba = new Uint8Array(tip.width * tip.height * 4);
+    tip.alpha.forEach((a, i) => rgba.set([a, a, a, 255], i * 4));
+    return { id: tip.id, width: tip.width, height: tip.height, rgba };
 }
 
 export interface PreviewOptions {

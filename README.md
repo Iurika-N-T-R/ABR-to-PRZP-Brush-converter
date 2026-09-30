@@ -57,29 +57,38 @@ output/<name>/
 output/<name>.log    # per-brush warnings
 ```
 
-A brush is **partial** when some of its Photoshop features have no Infinite Painter equivalent; it still converts. **Failed** means nothing usable could be made from it.
+Every Photoshop feature is either converted exactly, **approximated** (the effect is carried by the closest Infinite Painter setting), **minor** (barely visible difference), or **lost**. A brush is **partial** only when something is lost; it still converts. **Failed** means nothing usable could be made from it. `report.json` lists the `unsupported` (lost), `approximated` and `minor` features; the `.log` marks losses as `"level":"warn"` and the rest as `"level":"info"`.
+
+On 156 test brushes: 154 complete, 2 partial, 0 failed.
 
 ## What gets converted
 
 | Photoshop | Infinite Painter |
 |---|---|
-| Sampled tip (bitmap) | Custom head (capped at 2048 px) |
-| Computed round tip | Built-in round head, softness = 1 − hardness |
-| Erodible / bristle tips | Approximated as a round head |
+| Sampled tip (bitmap) | Custom head (capped at 2048 px), roundness and flip baked into the image |
+| Computed round tip | Built-in round head, softness = 1 − hardness; elliptical ones become a custom head |
+| Erodible / bristle tips | *Approximated* as a round head |
 | Spacing | Spacing (× 0.5, range 0.5 %–200 %) |
 | Tip angle | Head angle |
 | Angle control "Direction" | Rotation: the head follows the stroke |
-| Angle control "Rotation" / "Pen Tilt" | Stylus rotation |
+| Angle control "Rotation" / "Pen Tilt" / "Stylus Wheel" | Stylus rotation |
+| Angle control "Initial Direction" | *Approximated* as Rotation |
 | Size / angle / opacity jitter | Size / angle / flow jitter |
-| Scatter | Scatter (× 0.1) |
+| Roundness by pressure / roundness jitter | *Approximated* as size by pressure / size jitter |
+| Scatter, scatter by pressure | Scatter (× 0.1), pressure scatter dynamics |
+| Scatter count | *Approximated* as a proportionally tighter spacing |
+| Dual brush | *Approximated*: second tip used as the texture, or baked into the head when the brush already has a texture |
 | Size, opacity, flow driven by pressure or tilt | Pressure / tilt dynamics, with curves built from the Photoshop minimum |
 | Texture (pattern), scale, depth, invert | Custom stroke texture (depth mapped inverted, as the app expects) |
+| Texture brightness / contrast | Baked into the texture image |
+| Texture minimum depth | Start of the texture pressure/tilt curve |
 | Color dynamics (hue, saturation, brightness) | Color jitter, per stroke or per stamp |
 | Wet edges | Wet edges |
 
 Each brush also gets a 512×128 stroke preview in Infinite Painter's own style.
 
-**Not supported** (reported as warnings): dual brush, scatter count, roundness dynamics, flip, noise, texture blend modes and brightness/contrast, "Initial Direction" and "Fade" controls, mixer and smudge tools.
+**Lost** (makes a brush partial): "Fade" controls, foreground/background color dynamics, mixer and smudge tools.  
+**Minor** (logged only): random flip per stamp, scatter count jitter, noise, color purity, brush pose. Texture blend modes are approximated by Infinite Painter's default texture style.
 
 **Readable ABR files:** Photoshop 7 and newer (ABR v6–v10). Very old ABR files (v1–v2) and 16-bit RLE tips are not supported by the underlying parser.
 

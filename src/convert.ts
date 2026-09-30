@@ -1,13 +1,13 @@
-import { type Pattern, parseAbr, patternToPng, roundTip, strokePreviewPng, tipToPng } from './abr-reader.js';
+import { maskWithTip, parseAbr, patternToPng, roundTip, strokePreviewPng, tipAsPattern, tipToPng, transformTip } from './abr-reader.js';
 import { writePrbr, writePrzp } from './infinite-painter.js';
-import { toUniversal } from './photoshop.js';
-import type { Dynamics } from './universal.js';
+import { type Warning, toUniversal } from './photoshop.js';
+import type { Dynamics, UniversalBrush } from './universal.js';
 
 export interface BrushResult {
     name: string;
     fileName: string;
     status: 'converted' | 'partial' | 'failed';
-    warnings: string[];
+    warnings: Warning[];
 }
 
 export interface Conversion {
@@ -19,7 +19,9 @@ export interface Conversion {
         converted: number;
         partial: number;
         failed: number;
-        unsupported: string[];
+        unsupported: string[]; // lost: the reason a brush is "partial"
+        approximated: string[];
+        minor: string[];
         brushes: BrushResult[];
     };
 }
@@ -33,9 +35,16 @@ export async function convertAbr(buffer: Uint8Array, packName: string): Promise<
     const results: BrushResult[] = [];
     const used = new Set<string>();
 
-    // A pattern is often shared by several brushes: encode it once.
+    // A pattern is often shared by several brushes: encode each (pattern, adjustment) once.
     const textures = new Map<string, Buffer>();
-    const texturePng = (p: Pattern) => textures.get(p.id) ?? textures.set(p.id, patternToPng(p)).get(p.id)!;
+    const texturePng = (t: NonNullable<UniversalBrush['texture']>) => {
+        const key = `${t.uuid}|${t.brightness}|${t.contrast}|${!!t.fromTip}`;
+        if (!textures.has(key)) {
+            const pattern = t.fromTip ? tipAsPattern(tips.get(t.uuid)!) : patterns.get(t.uuid)!;
+            textures.set(key, patternToPng(pattern, t.brightness, t.contrast));
+        }
+        return textures.get(key)!;
+    };
 
     for (const ps of brushes) {
         const { brush, warnings } = toUniversal(ps, abr);
@@ -48,19 +57,29 @@ export async function convertAbr(buffer: Uint8Array, packName: string): Promise<
             results.push({ name: brush.name, fileName, status: 'failed', warnings });
             continue;
         }
-        const pattern = brush.texture && patterns.get(brush.texture.uuid);
-        const head = tip && tipToPng(tip);
+        // Bitmap tips get roundness/flip baked in; a squashed round tip needs a real head (IP's own is always round).
+        let headTip = tip
+            ? transformTip(tip, brush.roundness, brush.flip)
+            : brush.roundness < 1 ? roundTip(brush.hardness!, 256, brush.roundness) : undefined;
+        const dual = brush.dualHead;
+        if (dual) {
+            const mask = dual.uuid ? tips.get(dual.uuid)! : roundTip(dual.hardness, 128);
+            headTip = maskWithTip(headTip ?? roundTip(brush.hardness!, 256), mask, dual.sizeRatio, dual.spacing);
+        }
+        const head = headTip && tipToPng(headTip);
         const pressureMin = (d?: Dynamics) => (d?.control === 'pressure' ? d.minimum : undefined);
-        const preview = strokePreviewPng(tip ?? roundTip(brush.hardness!), {
+        const preview = strokePreviewPng(headTip ?? roundTip(brush.hardness!), {
             spacing: brush.spacing,
             sizeMin: pressureMin(brush.sizeDynamics),
             opacityMin: pressureMin(brush.opacityDynamics) ?? pressureMin(brush.flowDynamics),
         });
-        out.push({ fileName, data: await writePrbr(brush, head, preview, pattern && texturePng(pattern)) });
-        results.push({ name: brush.name, fileName, status: warnings.length ? 'partial' : 'converted', warnings });
+        out.push({ fileName, data: await writePrbr(brush, head, preview, brush.texture && texturePng(brush.texture)) });
+        results.push({ name: brush.name, fileName, status: warnings.some((w) => w.level === 'lost') ? 'partial' : 'converted', warnings });
     }
 
     const count = (s: BrushResult['status']) => results.filter((r) => r.status === s).length;
+    const features = (level: Warning['level']) =>
+        [...new Set(results.flatMap((r) => r.warnings.filter((w) => w.level === level).map((w) => w.feature)))].sort();
     return {
         brushes: out,
         tips: [...tips.values()].map((t) => ({ id: t.id, png: tipToPng(t, true) })),
@@ -70,7 +89,9 @@ export async function convertAbr(buffer: Uint8Array, packName: string): Promise<
             converted: count('converted'),
             partial: count('partial'),
             failed: count('failed'),
-            unsupported: [...new Set(results.flatMap((r) => r.warnings))].sort(),
+            unsupported: features('lost'),
+            approximated: features('approximated'),
+            minor: features('minor'),
             brushes: results,
         },
     };
