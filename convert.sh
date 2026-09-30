@@ -1,23 +1,27 @@
 #!/usr/bin/env bash
 # One command does everything: checks Node, installs/updates dependencies (and the ag-psd fixes),
 # rebuilds when the code changed, then converts every .abr given (files or folders, searched recursively).
+# Already converted files are skipped, unless the .abr or the converter changed since.
 #
-#   ./convert.sh brushes.abr
-#   ./convert.sh Samples/Photoshop            # every .abr inside
-#   ./convert.sh a.abr b.abr -o ~/Desktop/out # custom output folder (default: ./output)
+#   bash convert.sh brushes.abr
+#   bash convert.sh Samples/Photoshop            # every .abr inside
+#   bash convert.sh a.abr b.abr -o ~/Desktop/out # custom output folder (default: ./output)
+#   bash convert.sh --force brushes/             # reconvert everything
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 OUT="output"
+FORCE=0
 INPUTS=()
 while [ $# -gt 0 ]; do
     case "$1" in
         -o) OUT="$2"; shift 2 ;;
+        -f|--force) FORCE=1; shift ;;
         *) INPUTS+=("$1"); shift ;;
     esac
 done
 if [ ${#INPUTS[@]} -eq 0 ]; then
-    sed -n '2,7p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'
     exit 1
 fi
 
@@ -61,9 +65,15 @@ for input in "${INPUTS[@]}"; do
 done
 [ ${#FILES[@]} -gt 0 ] || { echo "✗ No .abr file found." >&2; exit 1; }
 
-ok=0; ko=0
+ok=0; ko=0; skipped=0
 for f in "${FILES[@]}"; do
     name="$(basename "${f%.*}")"
+    pack="$OUT/$name/$name.przp"
+    # Up to date = pack newer than both the .abr and the converter build (a git pull that changes the code reconverts).
+    if [ "$FORCE" = 0 ] && [ "$pack" -nt "$f" ] && [ "$pack" -nt "$ROOT/dist/cli.js" ]; then
+        skipped=$((skipped + 1))
+        continue
+    fi
     echo "→ $name"
     mkdir -p "$OUT"
     log="$OUT/$name.log"   # warnings + errors; kept so a failure can be read
@@ -75,4 +85,5 @@ for f in "${FILES[@]}"; do
         grep -v '"level":"\(warn\|info\)"' "$log" | tail -8 >&2
     fi
 done
-echo "✓ $ok file(s) converted, $ko failed → $OUT/ (import the .przp of each folder into Infinite Painter)"
+echo "✓ $ok file(s) converted, $skipped already up to date, $ko failed → $OUT/ (import the .przp of each folder into Infinite Painter)"
+[ "$skipped" = 0 ] || echo "  (skipped files: use --force to reconvert them)"

@@ -29,7 +29,10 @@ More examples:
 bash convert.sh a.abr b.abr                # several files
 bash convert.sh ~/Downloads/brushes/       # every .abr in a folder (recursive)
 bash convert.sh my-brushes.abr -o ~/out    # custom output folder (default: ./output)
+bash convert.sh --force ~/Downloads/brushes/   # reconvert everything
 ```
+
+Files already converted are skipped: an `.abr` is converted again only if it changed, or if the converter itself was updated (e.g. after `git pull`). Use `--force` to reconvert anyway.
 
 `convert.sh` checks Node, installs dependencies only when needed, rebuilds only when the source changed, then converts. `node_modules/` is committed, so it also runs offline.
 
