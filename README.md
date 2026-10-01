@@ -11,7 +11,13 @@ Converts Photoshop brushes (`.abr`) into Infinite Painter brushes (`.prbr`) and 
 
 It converts the brush tip images and also the brush behaviour: spacing, jitter, pressure and tilt dynamics, textures, stroke direction, color jitter and wet edges. The mappings were calibrated against real Infinite Painter packs and against test brushes checked in the app.
 
-## Quick start
+## Use it in the browser
+
+**<https://iurika-n-t-r.github.io/ABR-to-PRZP-Brush-converter/>**
+
+Pick your `.abr` files, download the `.przp`, import it into Infinite Painter. Works on a phone or tablet, nothing to install. The conversion runs in the browser: your brushes are never uploaded.
+
+## Quick start (command line)
 
 Requires **Node.js 20.10 or newer**.
 
@@ -34,7 +40,7 @@ bash convert.sh --force ~/Downloads/brushes/   # reconvert everything
 
 Files already converted are skipped: an `.abr` is converted again only if it changed, or if the converter itself was updated (e.g. after `git pull`). Use `--force` to reconvert anyway.
 
-`convert.sh` checks Node, installs dependencies only when needed, rebuilds only when the source changed, then converts. `node_modules/` is committed, so it also runs offline.
+`convert.sh` checks Node, installs dependencies only when needed, rebuilds only when the source changed, then converts.
 
 ### Android (Termux)
 
@@ -108,6 +114,7 @@ Each brush also gets a 512×128 stroke preview in Infinite Painter's own style.
 | CLI | `node:util` `parseArgs` |
 | Tests | `node:test` run through [tsx](https://github.com/privatenumber/tsx) |
 | Launcher | Bash (`convert.sh`) |
+| Web page | The same converter bundled with [esbuild](https://esbuild.github.io/), served by GitHub Pages from `docs/` |
 
 ## How it works
 
@@ -125,6 +132,8 @@ Each brush also gets a 512×128 stroke preview in Infinite Painter's own style.
 | `src/template-properties.json` | A real Infinite Painter brush used as the base; only mapped fields are changed |
 | `src/convert.ts` | Converts a whole ABR and builds the report |
 | `src/cli.ts` | Command-line entry point |
+| `docs/index.html` | Web page; `docs/app.js` is `src/convert.ts` bundled for the browser |
+| `scripts/web-shims.js` | Browser replacements for `Buffer` and `node:crypto`, used only by the web bundle |
 
 ## Development
 
@@ -132,6 +141,7 @@ Each brush also gets a 512×128 stroke preview in Infinite Painter's own style.
 npm install
 npm run build                          # compile src/ to dist/
 npm test                               # unit + end-to-end tests
+npm run build:web                      # rebuild docs/app.js (the web page) after changing src/
 node dist/cli.js file.abr -o out --json   # also writes abr.json (dump of the ABR, without pixels)
 ```
 
