@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ABR to PRZP Converter: Photoshop brushes to Infinite Painter (free, online)</title>
-<meta name="description" content="Free, open-source converter from Photoshop .abr brushes to Infinite Painter .przp brush packs. Runs in your browser: no upload, no account, nothing to install.">
+<title>ABR to PRZP Brush Converter | Photoshop Brushes to Infinite Painter</title>
+<meta name="description" content="Free online tool to convert Adobe Photoshop .abr brushes to Infinite Painter .przp brush packs. Open source, runs in your browser: no upload, no account.">
 <link rel="canonical" href="https://iurika-n-t-r.github.io/ABR-to-PRZP-Brush-converter/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%23171327'/%3E%3Cg fill='none' stroke='%23a78bfa' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' transform='translate(4.2 4.2) scale(.65)'%3E%3Cpath d='M7 3h8l4 4v14H7z'/%3E%3Cpath d='M15 3v5h5'/%3E%3Cpath d='m10 13 2 2 4-4'/%3E%3C/g%3E%3C/svg%3E">
 <meta name="theme-color" content="#0b0d12">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://iurika-n-t-r.github.io/ABR-to-PRZP-Brush-converter/">
-<meta property="og:title" content="ABR to PRZP Converter: Photoshop brushes to Infinite Painter (free, online)">
-<meta property="og:description" content="Free, open-source converter from Photoshop .abr brushes to Infinite Painter .przp brush packs. Runs in your browser: no upload, no account, nothing to install.">
+<meta property="og:title" content="ABR to PRZP Brush Converter | Photoshop Brushes to Infinite Painter">
+<meta property="og:description" content="Free online tool to convert Adobe Photoshop .abr brushes to Infinite Painter .przp brush packs. Open source, runs in your browser: no upload, no account.">
 <meta property="og:image" content="https://iurika-n-t-r.github.io/ABR-to-PRZP-Brush-converter/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -22,7 +22,7 @@
     "@type": "WebApplication",
     "name": "ABR to PRZP Brush Converter",
     "url": "https://iurika-n-t-r.github.io/ABR-to-PRZP-Brush-converter/",
-    "description": "Free, open-source converter from Photoshop .abr brushes to Infinite Painter .przp brush packs. Runs in your browser: no upload, no account, nothing to install.",
+    "description": "Free online tool to convert Adobe Photoshop .abr brushes to Infinite Painter .przp brush packs. Open source, runs in your browser: no upload, no account.",
     "applicationCategory": "DesignApplication",
     "operatingSystem": "Any",
     "browserRequirements": "Requires JavaScript",
@@ -217,6 +217,16 @@
     .carry-more { text-align: center; margin-top: 16px; font-size: 12px; color: var(--muted); }
     .carry-more a { color: var(--accent-2); text-decoration: underline; text-underline-offset: 2px; }
 
+    /* GUIDE */
+    .guide { width: min(100%, 720px); margin: 70px auto 0; color: var(--muted); font-size: 14px; line-height: 1.7; }
+    .guide h2 { color: var(--text); font-size: 20px; letter-spacing: -0.03em; line-height: 1.3; margin: 44px 0 12px; }
+    .guide h3 { color: #cbd1db; font-size: 14px; font-weight: 600; margin: 20px 0 4px; }
+    .guide ol { padding-left: 20px; }
+    .guide li { margin-bottom: 6px; }
+    .guide p + p, .guide ol + p { margin-top: 10px; }
+    .guide strong { color: #cbd1db; font-weight: 600; }
+    .guide a { color: var(--accent-2); text-decoration: underline; text-underline-offset: 2px; }
+
     /* FOOTER */
     footer { margin: 65px auto 25px; text-align: center; font-size: 11px; line-height: 2; color: var(--muted-2); }
     footer .dot { margin: 0 9px; opacity: 0.5; }
@@ -349,6 +359,33 @@
             <li><span class="chip">Not tested yet</span> mapped from the file format only</li>
         </ul>
         <p class="carry-more"><a href="https://github.com/Iurika-N-T-R/ABR-to-PRZP-Brush-converter#what-gets-converted">Full list of converted settings</a></p>
+    </section>
+
+    <section class="guide">
+        <h2>How to convert Photoshop brushes to Infinite Painter</h2>
+        <ol>
+            <li>Choose one or several Photoshop brush files (<strong>.abr</strong>) at the top of this page, or drop them onto it.</li>
+            <li>Press <strong>Convert brushes</strong>. The conversion runs on your own device and takes a few seconds per file.</li>
+            <li>Download the <strong>.przp</strong> pack of each file.</li>
+            <li>Import the .przp into Infinite Painter. The brushes arrive in a new folder named after the pack.</li>
+        </ol>
+        <p>For each file, the page tells you how many brushes converted completely, how many only partially, and which Photoshop feature was lost.</p>
+
+        <h2>Why this ABR to PRZP converter exists</h2>
+        <p>Most brush packs shared or sold online are made for Adobe Photoshop and come as .abr files. Infinite Painter has its own brush format (.prbr for one brush, .przp for a pack), so those packs cannot be used there as they are. I draw as well as code, and I built this converter to carry Photoshop brushes over to Infinite Painter, then made it free for anyone with the same problem.</p>
+        <p>It converts more than the shape of the brush tip. Spacing, angle, scatter, jitter, pressure and tilt dynamics, textures, color jitter and wet edges are translated to the closest Infinite Painter settings, so a converted brush behaves like the original instead of being a plain stamp.</p>
+
+        <h2>Questions</h2>
+        <h3>Is it really free?</h3>
+        <p>Yes. There is no account, no limit and no paid version. The code is open source and in the public domain (CC0), <a href="https://github.com/Iurika-N-T-R/ABR-to-PRZP-Brush-converter">available on GitHub</a>.</p>
+        <h3>Are my brushes uploaded somewhere?</h3>
+        <p>No. This page has no server behind it: your files are read and converted inside your browser, and nothing is stored. Download your packs before closing the tab, because they are gone once you leave.</p>
+        <h3>Which brush files can it read?</h3>
+        <p>Brushes saved by Photoshop 7 or newer (ABR versions 6 to 10). Very old .abr files are not supported. A few Photoshop features have no equivalent in Infinite Painter and are dropped: “Fade” controls, foreground/background color dynamics, and the mixer and smudge tools.</p>
+        <h3>Can I convert a whole folder of brushes at once?</h3>
+        <p>You can pick many files in one go on this page. To convert entire folders automatically, use the command-line version from the <a href="https://github.com/Iurika-N-T-R/ABR-to-PRZP-Brush-converter">GitHub repository</a>.</p>
+        <h3>A brush looks wrong after import. What can I do?</h3>
+        <p><a href="https://github.com/Iurika-N-T-R/ABR-to-PRZP-Brush-converter/issues">Open an issue on GitHub</a> and say which brush pack it was. Not every setting has been checked by hand yet; the table above shows what has been tested.</p>
     </section>
 </main>
 
