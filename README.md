@@ -6,6 +6,7 @@
 ![Output](https://img.shields.io/badge/output-Infinite%20Painter%20.przp-E4405F)
 ![Platforms](https://img.shields.io/badge/runs%20on-Linux%20%7C%20macOS%20%7C%20Windows%20%7C%20Termux-555)
 [![License: CC0-1.0](https://img.shields.io/badge/license-CC0--1.0-lightgrey)](LICENSE)
+[![Buy me a coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-support-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/iurika)
 
 Converts Photoshop brushes (`.abr`) into Infinite Painter brushes (`.prbr`) and a ready-to-import pack (`.przp`).
 
@@ -152,3 +153,7 @@ Format notes, calibration results and the full mapping between the app's setting
 ## License
 
 See [LICENSE](LICENSE).
+
+## Support
+
+This converter is free and open source. If it saved you time, you can [buy me a coffee](https://buymeacoffee.com/iurika).
