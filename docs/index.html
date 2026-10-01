@@ -3,61 +3,441 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ABR → Infinite Painter brush converter</title>
-<meta name="description" content="Convert Photoshop .abr brushes to Infinite Painter .przp packs, in your browser.">
+<title>ABR → PRZP Brush Converter</title>
+<meta name="description" content="Free, open-source converter from Photoshop .abr brushes to Infinite Painter .przp packs. Runs entirely in your browser.">
 <style>
-    :root { color-scheme: light dark; --accent: #e4405f; }
-    body { font: 1rem/1.5 system-ui, sans-serif; max-width: 40rem; margin: 0 auto; padding: 1.5rem 1rem; }
-    h1 { font-size: 1.5rem; line-height: 1.2; }
-    .pick { display: block; padding: 2rem 1rem; border: 2px dashed var(--accent); border-radius: .75rem; text-align: center; font-weight: 600; cursor: pointer; }
-    .pick:focus-within { outline: 3px solid var(--accent); outline-offset: 2px; }
-    .pick input { position: absolute; opacity: 0; width: 1px; height: 1px; }
-    #out { list-style: none; padding: 0; }
-    #out li { margin: 1rem 0; padding: 1rem; border: 1px solid color-mix(in srgb, currentColor 25%, transparent); border-radius: .75rem; overflow-wrap: anywhere; }
-    #out a { display: inline-block; margin-top: .5rem; padding: .6rem 1rem; border-radius: .5rem; background: var(--accent); color: #fff; font-weight: 600; text-decoration: none; }
-    small, footer { opacity: .75; font-size: .875rem; }
-    footer { margin-top: 2rem; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+        color-scheme: dark;
+        --bg: #0b0d12;
+        --surface: #11141b;
+        --surface-2: #151922;
+        --border: rgba(255, 255, 255, 0.08);
+        --text: #f5f7fb;
+        --muted: #8d95a5;
+        --muted-2: #7a8292;
+        --accent: #8b5cf6;
+        --accent-2: #a78bfa;
+        --accent-soft: rgba(139, 92, 246, 0.12);
+        --green: #44d19d;
+        --green-soft: rgba(68, 209, 157, 0.1);
+        --danger: #ff6b75;
+    }
+
+    body {
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+        color: var(--text);
+        background: radial-gradient(circle at 50% -20%, rgba(139, 92, 246, 0.14), transparent 35%), var(--bg);
+        background-repeat: no-repeat;
+        min-height: 100vh;
+        padding: 24px;
+    }
+    button { font: inherit; cursor: pointer; }
+    a { color: inherit; text-decoration: none; }
+    svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .app { width: min(100%, 1120px); margin: 0 auto; }
+
+    /* HEADER */
+    .topbar { min-height: 62px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 70px; }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 700; letter-spacing: -0.02em; }
+    .brand-mark {
+        width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center;
+        background: linear-gradient(145deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.05));
+        border: 1px solid rgba(167, 139, 250, 0.24); color: var(--accent-2);
+    }
+    .brand-mark svg { width: 19px; height: 19px; }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .ghost-btn {
+        height: 38px; padding: 0 14px; border-radius: 10px; border: 1px solid transparent; color: var(--muted);
+        display: flex; align-items: center; gap: 8px; transition: 0.2s ease;
+    }
+    .ghost-btn:hover { color: var(--text); background: rgba(255, 255, 255, 0.04); border-color: var(--border); }
+    .ghost-btn svg { width: 16px; height: 16px; }
+
+    /* HERO */
+    .hero { text-align: center; max-width: 720px; margin: 0 auto 44px; }
+    .eyebrow {
+        display: inline-flex; align-items: center; gap: 8px; min-height: 30px; padding: 4px 11px; border-radius: 999px;
+        background: var(--green-soft); border: 1px solid rgba(68, 209, 157, 0.16); color: #75e6bb;
+        font-size: 12px; font-weight: 600; margin-bottom: 20px;
+    }
+    .eyebrow-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px rgba(68, 209, 157, 0.6); }
+    .hero h1 { font-size: clamp(38px, 6vw, 64px); line-height: 1; letter-spacing: -0.055em; margin-bottom: 20px; font-weight: 750; }
+    .hero h1 span { background: linear-gradient(90deg, #a78bfa, #c4b5fd); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .hero p { color: var(--muted); font-size: 16px; line-height: 1.7; max-width: 610px; margin: auto; }
+    .hero p strong { color: var(--text); font-weight: 600; }
+
+    /* MAIN CARD */
+    .converter {
+        width: min(100%, 850px); margin: 0 auto; padding: 12px; border: 1px solid var(--border); border-radius: 24px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)), var(--surface);
+        box-shadow: 0 30px 70px rgba(0, 0, 0, 0.28), inset 0 1px rgba(255, 255, 255, 0.02);
+    }
+
+    /* DROP ZONE */
+    .drop-zone {
+        min-height: 310px; border: 1px dashed rgba(255, 255, 255, 0.14); border-radius: 17px; background: rgba(255, 255, 255, 0.012);
+        display: flex; align-items: center; justify-content: center; text-align: center; padding: 36px;
+        position: relative; overflow: hidden; cursor: pointer; transition: 0.25s ease;
+    }
+    .drop-zone::before {
+        content: ""; position: absolute; width: 280px; height: 280px; left: 50%; top: 50%; transform: translate(-50%, -50%);
+        border-radius: 50%; background: rgba(139, 92, 246, 0.055); filter: blur(30px); pointer-events: none;
+    }
+    .drop-zone:hover, .drop-zone.dragging { border-color: rgba(167, 139, 250, 0.46); background: rgba(139, 92, 246, 0.035); }
+    .drop-content { position: relative; z-index: 1; }
+    .upload-icon {
+        width: 62px; height: 62px; margin: 0 auto 20px; border-radius: 18px; display: grid; place-items: center;
+        background: var(--accent-soft); border: 1px solid rgba(167, 139, 250, 0.18); color: var(--accent-2);
+        box-shadow: 0 10px 30px rgba(139, 92, 246, 0.08);
+    }
+    .upload-icon svg { width: 28px; height: 28px; }
+    .drop-title { font-size: 18px; font-weight: 650; letter-spacing: -0.025em; margin-bottom: 8px; }
+    .drop-description { color: var(--muted); font-size: 14px; margin-bottom: 20px; }
+    .browse-btn, .download-btn {
+        border: 0; border-radius: 11px; background: var(--text); color: #111319; font-weight: 650; font-size: 13px;
+        transition: 0.18s ease; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+    }
+    .browse-btn { height: 42px; padding: 0 17px; }
+    .browse-btn:hover, .download-btn:hover { transform: translateY(-1px); background: white; }
+    .supported { margin-top: 18px; font-size: 12px; color: var(--muted-2); }
+
+    /* FILE LIST */
+    .file-section { padding: 18px 4px 4px; }
+    .section-head { display: flex; justify-content: space-between; align-items: center; padding: 0 4px 12px; }
+    .section-head strong { font-size: 13px; letter-spacing: -0.015em; }
+    .section-head span { color: var(--muted); font-size: 12px; }
+    .files { display: flex; flex-direction: column; gap: 8px; list-style: none; }
+    .file-item {
+        min-height: 64px; border-radius: 13px; border: 1px solid var(--border); background: var(--surface-2);
+        padding: 10px 11px; display: flex; align-items: center; gap: 12px;
+    }
+    .file-icon {
+        width: 40px; height: 40px; border-radius: 10px; background: var(--accent-soft); display: grid; place-items: center;
+        color: var(--accent-2); flex-shrink: 0; font-weight: 700; font-size: 10px;
+    }
+    .file-info { min-width: 0; flex: 1; }
+    .file-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
+    .file-meta { font-size: 11px; line-height: 1.5; color: var(--muted); overflow-wrap: anywhere; }
+    .file-meta.error { color: var(--danger); }
+    .file-status { display: flex; align-items: center; gap: 7px; font-size: 11px; color: #75e6bb; white-space: nowrap; }
+    .download-btn { padding: 9px 14px; font-size: 12px; white-space: nowrap; }
+    .remove-btn {
+        width: 32px; height: 32px; border-radius: 9px; border: 0; background: transparent; color: var(--muted);
+        display: grid; place-items: center; flex-shrink: 0; transition: 0.18s ease;
+    }
+    .remove-btn:hover { background: rgba(255, 107, 117, 0.09); color: var(--danger); }
+    .remove-btn:disabled { opacity: 0.3; pointer-events: none; }
+    .remove-btn svg { width: 15px; height: 15px; }
+
+    /* ACTION */
+    .action-row { display: flex; padding: 16px 4px 3px; align-items: center; justify-content: space-between; gap: 16px; min-height: 63px; }
+    .privacy-note { display: flex; align-items: flex-start; gap: 9px; max-width: 390px; color: var(--muted); font-size: 11px; line-height: 1.45; }
+    .privacy-note svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--green); margin-top: 1px; }
+    .convert-btn {
+        min-width: 165px; height: 44px; border: 0; border-radius: 11px; padding: 0 18px;
+        display: flex; justify-content: center; align-items: center; gap: 9px; color: white; font-weight: 650; font-size: 13px;
+        background: linear-gradient(135deg, #7c3aed, #8b5cf6); box-shadow: 0 8px 24px rgba(124, 58, 237, 0.22); transition: 0.2s ease;
+    }
+    .convert-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 30px rgba(124, 58, 237, 0.31); }
+    .convert-btn:disabled { pointer-events: none; opacity: 0.8; }
+    .convert-btn svg { width: 16px; height: 16px; }
+    .spinner {
+        width: 15px; height: 15px; border: 2px solid rgba(255, 255, 255, 0.28); border-top-color: white; border-radius: 50%;
+        animation: spin 0.7s linear infinite; flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    [hidden] { display: none !important; }
+
+    /* FEATURES */
+    .features { width: min(100%, 850px); margin: 25px auto 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .feature { display: flex; align-items: flex-start; gap: 11px; padding: 15px; border-radius: 14px; color: var(--muted); }
+    .feature-icon {
+        width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; flex-shrink: 0;
+        border: 1px solid var(--border); background: rgba(255, 255, 255, 0.025); color: #b3bac8;
+    }
+    .feature-icon svg { width: 14px; height: 14px; }
+    .feature strong { display: block; color: #cbd1db; font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+    .feature p { font-size: 11px; line-height: 1.5; }
+    .feature a, footer a { text-decoration: underline; text-underline-offset: 2px; transition: color 0.2s ease; }
+    .feature a:hover, footer a:hover { color: var(--text); }
+
+    /* WHAT CARRIES OVER */
+    .carry { width: min(100%, 850px); margin: 60px auto 0; }
+    .carry h2 { text-align: center; font-size: 24px; letter-spacing: -0.035em; margin-bottom: 8px; }
+    .carry-lead { text-align: center; color: var(--muted); font-size: 13px; line-height: 1.6; margin-bottom: 22px; }
+    .carry-card { border: 1px solid var(--border); border-radius: 18px; background: var(--surface); overflow: hidden; }
+    .carry table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .carry th, .carry td { padding: 13px 16px; text-align: left; border-bottom: 1px solid var(--border); }
+    .carry tbody tr:last-child td { border-bottom: 0; }
+    .carry thead th { font-size: 12px; font-weight: 600; color: var(--muted); background: rgba(255, 255, 255, 0.025); }
+    .carry .center { text-align: center; width: 1%; white-space: nowrap; }
+    .mark {
+        display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 7px;
+        font-size: 13px; font-weight: 700; line-height: 1; flex-shrink: 0;
+    }
+    .mark.ok { background: rgba(68, 209, 157, 0.14); color: var(--green); }
+    .mark.near { background: rgba(245, 166, 35, 0.14); color: #f5a623; }
+    .mark.none { background: rgba(255, 255, 255, 0.06); color: var(--muted); }
+    .chip { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; border: 1px solid var(--border); color: var(--muted); }
+    .chip.tested { color: #75e6bb; background: var(--green-soft); border-color: rgba(68, 209, 157, 0.16); }
+    .chip.ref { color: #c4b5fd; background: var(--accent-soft); border-color: rgba(167, 139, 250, 0.18); }
+    .legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 22px; margin-top: 18px; color: var(--muted); font-size: 12px; list-style: none; }
+    .legend li { display: flex; align-items: center; gap: 8px; }
+    .legend .chip { flex: none; white-space: nowrap; }
+    .carry-more { text-align: center; margin-top: 16px; font-size: 12px; color: var(--muted); }
+    .carry-more a { color: var(--accent-2); text-decoration: underline; text-underline-offset: 2px; }
+
+    /* FOOTER */
+    footer { margin: 65px auto 25px; text-align: center; font-size: 11px; line-height: 2; color: var(--muted-2); }
+    footer .dot { margin: 0 9px; opacity: 0.5; }
+
+    @media (max-width: 700px) {
+        body { padding: 16px; }
+        .topbar { margin-bottom: 45px; }
+        .ghost-label { display: none; }
+        .hero { margin-bottom: 30px; }
+        .hero h1 { font-size: 42px; }
+        .drop-zone { min-height: 290px; padding: 26px 20px; }
+        .file-item { flex-wrap: wrap; }
+        .file-info { flex: 1 1 0; }
+        .file-status, .download-btn { order: 1; flex-basis: 100%; }
+        .file-status { padding-left: 52px; }
+        .download-btn { text-align: center; padding: 12px 14px; }
+        .action-row { flex-direction: column; align-items: stretch; }
+        .convert-btn { width: 100%; }
+        .features { grid-template-columns: 1fr; gap: 2px; }
+        .carry th, .carry td { padding: 11px 8px; }
+        .carry th:first-child, .carry td:first-child { padding-left: 12px; }
+        .chip { font-size: 10px; padding: 3px 7px; }
+        .legend { flex-direction: column; align-items: flex-start; }
+    }
 </style>
 </head>
+
 <body>
-<h1>ABR → Infinite Painter brush converter</h1>
-<p>Turns Photoshop brushes (<code>.abr</code>) into a pack (<code>.przp</code>) you can import into Infinite Painter. Everything runs in your browser: your brushes are never uploaded.</p>
+<div class="app">
 
-<label class="pick">Choose .abr files<input id="abr" type="file" accept=".abr" multiple></label>
-<ul id="out" aria-live="polite"></ul>
+<header class="topbar">
+    <a class="brand" href="./">
+        <span class="brand-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h8l4 4v14H7z"/><path d="M15 3v5h5"/><path d="m10 13 2 2 4-4"/></svg></span>
+        <span>Brush Converter</span>
+    </a>
+    <nav class="header-actions">
+        <a class="ghost-btn" href="https://github.com/Iurika-N-T-R/ABR-to-PRZP-Brush-converter" aria-label="Source code on GitHub">
+            <svg viewBox="0 0 24 24" aria-hidden="true" style="fill: currentColor; stroke: none"><path d="M12 .7a12 12 0 0 0-3.79 23.39c.6.11.82-.26.82-.58v-2.24c-3.34.73-4.04-1.42-4.04-1.42-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.49.99.11-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.53.12-3.18 0 0 1.01-.32 3.3 1.23a11.45 11.45 0 0 1 6 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.62-5.48 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.22.7.82.58A12 12 0 0 0 12 .7Z"/></svg>
+            <span class="ghost-label">Open source</span>
+        </a>
+        <a class="ghost-btn" href="https://buymeacoffee.com/iurika" aria-label="Support: buy me a coffee">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h12v5a6 6 0 0 1-12 0z"/><path d="M17 9h1a3 3 0 0 1 0 6h-1"/><path d="M7 3v2"/><path d="M11 3v2"/><path d="M15 3v2"/><path d="M4 21h15"/></svg>
+            <span class="ghost-label">Support</span>
+        </a>
+    </nav>
+</header>
 
-<p><small>Reads Photoshop 7 and newer brushes (ABR v6–v10). A <em>partial</em> brush still converts, but loses a feature Infinite Painter does not have.</small></p>
-<footer>Free and open source. If it saved you time, you can <a href="https://buymeacoffee.com/iurika">buy me a coffee ☕</a> · <a href="https://github.com/Iurika-N-T-R/ABR-to-PRZP-Brush-converter">Source code on GitHub</a></footer>
+<main>
+    <section class="hero">
+        <div class="eyebrow"><span class="eyebrow-dot"></span>Free &amp; open source · 100% local conversion</div>
+        <h1>Convert brushes.<br><span>Keep creating.</span></h1>
+        <p>Convert Photoshop <strong>.abr</strong> brush packs into <strong>.przp</strong> files ready for Infinite Painter. Free, no account, nothing to install: everything happens directly in your browser.</p>
+    </section>
+
+    <section class="converter">
+        <div class="drop-zone" id="dropZone">
+            <div class="drop-content">
+                <div class="upload-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 14v5h14v-5"/></svg></div>
+                <div class="drop-title">Drop your .abr files here</div>
+                <div class="drop-description">or select them from your device</div>
+                <button class="browse-btn" id="browseBtn" type="button">Choose .abr files</button>
+                <div class="supported">Photoshop 7+ · ABR v6–v10 · Multiple files supported</div>
+            </div>
+            <input id="fileInput" type="file" accept=".abr" multiple hidden>
+        </div>
+
+        <div class="file-section" id="fileSection" hidden>
+            <div class="section-head"><strong>Files</strong><span id="fileCount"></span></div>
+            <ul class="files" id="files" aria-live="polite"></ul>
+        </div>
+
+        <div class="action-row" id="actionRow" hidden>
+            <div class="privacy-note">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>
+                <span>Your files never leave your device. Conversion is performed entirely inside this browser.</span>
+            </div>
+            <button class="convert-btn" id="convertBtn" type="button"></button>
+        </div>
+    </section>
+
+    <section class="features">
+        <div class="feature">
+            <div class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+            <div><strong>Private by design</strong><p>No uploads and no server-side processing.</p></div>
+        </div>
+        <div class="feature">
+            <div class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 6-6 6 6 6"/><path d="m16 6 6 6-6 6"/></svg></div>
+            <div><strong>Open source</strong><p>Free for everyone, public domain (CC0). <a href="https://github.com/Iurika-N-T-R/ABR-to-PRZP-Brush-converter">Read the code on GitHub</a>.</p></div>
+        </div>
+        <div class="feature">
+            <div class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h4"/></svg></div>
+            <div><strong>ABR v6–v10</strong><p>Supports Photoshop 7 and newer brush formats.</p></div>
+        </div>
+    </section>
+    <section class="carry">
+        <h2>What carries over</h2>
+        <p class="carry-lead">From Photoshop to Infinite Painter, and how far each part has been checked.<br>On 156 real test brushes: 154 convert completely, 2 partially, 0 fail.</p>
+        <div class="carry-card">
+            <table>
+                <thead><tr><th scope="col">Photoshop setting</th><th scope="col" class="center">Converted</th><th scope="col" class="center">Checked</th></tr></thead>
+                <tbody>
+                <tr><td>Brush tip image</td><td class="center"><span class="mark ok" role="img" aria-label="Converted">✓</span></td><td class="center"><span class="chip tested">Tested in app</span></td></tr>
+                <tr><td>Tip angle &amp; “follow stroke direction”</td><td class="center"><span class="mark ok" role="img" aria-label="Converted">✓</span></td><td class="center"><span class="chip tested">Tested in app</span></td></tr>
+                <tr><td>Stylus rotation</td><td class="center"><span class="mark ok" role="img" aria-label="Converted">✓</span></td><td class="center"><span class="chip tested">Tested in app</span></td></tr>
+                <tr><td>Round brushes &amp; hardness</td><td class="center"><span class="mark ok" role="img" aria-label="Converted">✓</span></td><td class="center"><span class="chip ref">Reference pack</span></td></tr>
+                <tr><td>Spacing</td><td class="center"><span class="mark ok" role="img" aria-label="Converted">✓</span></td><td class="center"><span class="chip ref">Reference pack</span></td></tr>
+                <tr><td>Scatter</td><td class="center"><span class="mark ok" role="img" aria-label="Converted">✓</span></td><td class="center"><span class="chip ref">Reference pack</span></td></tr>
+                <tr><td>Pressure → size, opacity &amp; flow</td><td class="center"><span class="mark ok" role="img" aria-label="Converted">✓</span></td><td class="center"><span class="chip ref">Reference pack</span></td></tr>
+                <tr><td>Tilt → size, opacity &amp; flow</td><td class="center"><span class="mark ok" role="img" aria-label="Converted">✓</span></td><td class="center"><span class="chip">Not tested yet</span></td></tr>
+                <tr><td>Angle jitter</td><td class="center"><span class="mark ok" role="img" aria-label="Converted">✓</span></td><td class="center"><span class="chip ref">Reference pack</span></td></tr>
+                <tr><td>Size &amp; opacity jitter</td><td class="center"><span class="mark ok" role="img" aria-label="Converted">✓</span></td><td class="center"><span class="chip">Not tested yet</span></td></tr>
+                <tr><td>Texture depth</td><td class="center"><span class="mark ok" role="img" aria-label="Converted">✓</span></td><td class="center"><span class="chip tested">Tested in app</span></td></tr>
+                <tr><td>Texture pattern, scale &amp; invert</td><td class="center"><span class="mark ok" role="img" aria-label="Converted">✓</span></td><td class="center"><span class="chip">Not tested yet</span></td></tr>
+                <tr><td>Color jitter (hue, saturation, brightness)</td><td class="center"><span class="mark ok" role="img" aria-label="Converted">✓</span></td><td class="center"><span class="chip">Not tested yet</span></td></tr>
+                <tr><td>Wet edges</td><td class="center"><span class="mark near" role="img" aria-label="Approximated">◐</span></td><td class="center"><span class="chip">Not tested yet</span></td></tr>
+                <tr><td>Dual brush, scatter count, texture blend modes</td><td class="center"><span class="mark near" role="img" aria-label="Approximated">◐</span></td><td class="center"><span class="chip">Not tested yet</span></td></tr>
+                <tr><td>Erodible &amp; bristle tips, roundness dynamics</td><td class="center"><span class="mark near" role="img" aria-label="Approximated">◐</span></td><td class="center"><span class="chip">Not tested yet</span></td></tr>
+                <tr><td>“Fade” controls, foreground/background color, mixer &amp; smudge tools</td><td class="center"><span class="mark none" role="img" aria-label="Not converted">–</span></td><td class="center"><span class="chip">—</span></td></tr>
+                </tbody>
+            </table>
+        </div>
+        <ul class="legend">
+            <li><span class="mark ok" role="img" aria-label="Converted">✓</span> converted</li>
+            <li><span class="mark near" role="img" aria-label="Approximated">◐</span> matched as closely as Infinite Painter allows</li>
+            <li><span class="mark none" role="img" aria-label="Not converted">–</span> Infinite Painter has no equivalent</li>
+        </ul>
+        <ul class="legend">
+            <li><span class="chip tested">Tested in app</span> drawn with a stylus in Infinite Painter</li>
+            <li><span class="chip ref">Reference pack</span> tuned on a pack its artist released for both apps</li>
+            <li><span class="chip">Not tested yet</span> mapped from the file format only</li>
+        </ul>
+        <p class="carry-more"><a href="https://github.com/Iurika-N-T-R/ABR-to-PRZP-Brush-converter#what-gets-converted">Full list of converted settings</a></p>
+    </section>
+</main>
+
+<footer>
+    Free &amp; open source
+    <span class="dot">•</span>
+    <a href="https://github.com/Iurika-N-T-R/ABR-to-PRZP-Brush-converter">Source code</a>
+    <span class="dot">•</span>
+    <a href="https://buymeacoffee.com/iurika">Buy me a coffee</a>
+    <span class="dot">•</span>
+    Built for Infinite Painter
+</footer>
+
+</div>
 
 <script type="module">
 import { convertAbr } from './app.js';
 
-const out = document.querySelector('#out');
-const line = (parent, tag, text) => Object.assign(parent.appendChild(document.createElement(tag)), { textContent: text });
+const $ = (id) => document.getElementById(id);
+const el = (tag, cls, text = '') => Object.assign(document.createElement(tag), { className: cls, textContent: text });
+const dropZone = $('dropZone'), fileInput = $('fileInput'), convertBtn = $('convertBtn');
+const CROSS = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"/><path d="M18 6 6 18"/></svg>';
+const ARROW = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m14 7 5 5-5 5"/></svg>';
 
-document.querySelector('#abr').addEventListener('change', async (e) => {
-    for (const file of e.target.files) {
-        const li = line(out, 'li', `${file.name}: converting…`);
+// One entry per picked file: { file, state: 'ready' | 'working' | 'done' | 'error', name?, report?, url?, error? }
+const items = [];
+let busy = false;
+
+const formatBytes = (n) => (n < 1024 ? `${n} B` : n < 1024 ** 2 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1024 ** 2).toFixed(1)} MB`);
+
+function addFiles(files) {
+    for (const file of files) {
+        if (!/\.abr$/i.test(file.name)) continue;
+        if (!items.some((it) => it.file.name === file.name && it.file.size === file.size)) items.push({ file, state: 'ready' });
+    }
+    render();
+}
+
+// File names come from the user's disk: they only ever go through textContent.
+function render() {
+    $('files').replaceChildren(...items.map((it) => {
+        const li = el('li', 'file-item');
+        const info = el('div', 'file-info');
+        const r = it.report;
+        info.append(el('div', 'file-name', it.file.name));
+        if (it.state === 'done') info.append(el('div', 'file-meta', `${r.totalBrushes} brushes · ${r.converted} complete · ${r.partial} partial · ${r.failed} failed`));
+        else if (it.state === 'error') info.append(el('div', 'file-meta error', `Could not be converted: ${it.error}`));
+        else info.append(el('div', 'file-meta', formatBytes(it.file.size)));
+        if (r?.unsupported.length) info.append(el('div', 'file-meta', `Lost: ${r.unsupported.join(', ')}`));
+        li.append(el('div', 'file-icon', 'ABR'), info);
+
+        if (it.state === 'done') {
+            li.append(Object.assign(el('a', 'download-btn', 'Download .przp'), { href: it.url, download: `${it.name}.przp` }));
+        } else if (it.state === 'working') {
+            const status = el('span', 'file-status');
+            status.append(el('span', 'spinner'), 'Converting…');
+            li.append(status);
+        } else if (it.state === 'ready') {
+            li.append(el('span', 'file-status', 'Ready'));
+        }
+
+        const remove = Object.assign(el('button', 'remove-btn'), { type: 'button', disabled: busy, innerHTML: CROSS });
+        remove.setAttribute('aria-label', `Remove ${it.file.name}`);
+        remove.addEventListener('click', () => {
+            if (it.url) URL.revokeObjectURL(it.url);
+            items.splice(items.indexOf(it), 1);
+            render();
+        });
+        li.append(remove);
+        return li;
+    }));
+
+    $('fileCount').textContent = `${items.length} file${items.length === 1 ? '' : 's'}`;
+    $('fileSection').hidden = $('actionRow').hidden = items.length === 0;
+    convertBtn.hidden = !busy && !items.some((it) => it.state === 'ready');
+    convertBtn.disabled = busy;
+    convertBtn.innerHTML = busy ? '<span class="spinner"></span>Converting…' : `Convert brushes${ARROW}`;
+}
+
+convertBtn.addEventListener('click', async () => {
+    busy = true;
+    for (const it of items.filter((i) => i.state === 'ready')) {
+        it.state = 'working';
+        render();
         // ponytail: converts on the main thread, so the page freezes for a few seconds on big files. Move to a Worker if that hurts.
-        await new Promise((r) => setTimeout(r, 50)); // lets "converting…" paint first
+        await new Promise((r) => setTimeout(r, 50)); // lets "Converting…" paint first
         try {
-            const name = file.name.replace(/\.abr$/i, '');
-            const { pack, report } = await convertAbr(new Uint8Array(await file.arrayBuffer()), name);
-            li.textContent = '';
-            line(li, 'strong', file.name);
-            line(li, 'div', `${report.totalBrushes} brushes: ${report.converted} complete, ${report.partial} partial, ${report.failed} failed`);
-            if (report.unsupported.length) line(li, 'small', `Lost: ${report.unsupported.join(', ')}`);
-            line(li, 'div', '');
+            it.name = it.file.name.replace(/\.abr$/i, '');
+            const { pack, report } = await convertAbr(new Uint8Array(await it.file.arrayBuffer()), it.name);
+            it.report = report;
             // octet-stream: with a zip type, Android renames the download to .zip.
-            const a = line(li, 'a', `Download ${name}.przp`);
-            a.href = URL.createObjectURL(new Blob([pack], { type: 'application/octet-stream' }));
-            a.download = `${name}.przp`;
+            it.url = URL.createObjectURL(new Blob([pack], { type: 'application/octet-stream' }));
+            it.state = 'done';
         } catch (err) {
-            li.textContent = `${file.name}: could not be converted (${err.message})`;
+            it.error = err.message;
+            it.state = 'error';
         }
     }
-    e.target.value = ''; // so picking the same file again fires `change`
+    busy = false;
+    render();
 });
+
+$('browseBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    fileInput.click();
+});
+dropZone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => {
+    addFiles(fileInput.files);
+    fileInput.value = ''; // so picking the same file again fires `change`
+});
+
+// A file dropped beside the zone would make the browser open it and throw away the converted packs.
+for (const type of ['dragover', 'drop']) window.addEventListener(type, (e) => e.preventDefault());
+for (const type of ['dragenter', 'dragover']) dropZone.addEventListener(type, () => dropZone.classList.add('dragging'));
+for (const type of ['dragleave', 'drop']) dropZone.addEventListener(type, () => dropZone.classList.remove('dragging'));
+dropZone.addEventListener('drop', (e) => addFiles(e.dataTransfer.files));
 </script>
 </body>
 </html>
