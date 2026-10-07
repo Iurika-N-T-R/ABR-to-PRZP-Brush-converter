@@ -101,6 +101,7 @@ Sources : pack « Tree » (2021), « Proko Pencil », « Personnalisé - 3 », p
 | tip bitmap (sampled) | `head` + `custom-head` (hash) |
 | tip computed (rond) | pas de `head`, `softness = 1 − dureté`, `parent = 2` |
 | tip erodible / bristle | approximé en rond (warning) |
+| shape.size (diamètre px) | stroke-properties.paint-size = taille ÷ (3,74 × size-maximum) (CAL 6 : 47 × 4,4 → 773 px ; à recalibrer) |
 | shape.spacing | head-properties.spacing = PS × 0.5, borné 0.005..2 (calibré sur la paire Syntetyc) |
 | shape.angle | head-properties.angle (radians) |
 | angle control « direction » | head-properties.rotation = 1 (suit le trait, testé) |
@@ -327,6 +328,28 @@ Chaque avertissement a maintenant un **niveau** ; seul « perdu » rend un pince
 Bugs corrigés au passage : « roundnessDynamics » signalé quand le réglage était absent ; « scatter bothAxes » signalé avec une dispersion à 0 ; « texture depthMinimum » signalé sans dynamique de profondeur ; rondeur des pinceaux image ignorée sans avertissement.
 
 Résultat sur 156 pinceaux (Size Flow Gang, Syntetyc x2) : **34 → 154 complets**, 122 → 2 partiels (« Fade »), 0 échec. Tests : 9/9.
+
+## Taille et têtes blanches (2026-10-07)
+
+* **Taille** : jamais écrite → tous les pinceaux à ~500 px. Maintenant `paint-size = diamètre PS ÷ (3,74 × size-maximum)`.
+* **Têtes blanches** (pointe vide alors que Photoshop montre une image) :
+  * Rondeur PS 0 % (Hard Elliptical) : division 0/0 → tête vide. Corrigé (ligne de 1 px).
+  * Dual brush cuit dans la tête : pointe éparse × un seul tampon du 2ᵉ tip éparse = presque rien (Pastel : 0 % d'encre). Le 2ᵉ tip est maintenant balayé le long du trait (comme PS), et le masque garde au moins la moitié de l'encre de la pointe.
+
+## ABR de test (2026-10-07)
+
+`npm run test-abr` → `test/fixtures/test-brushes.abr` (9 pinceaux générés, sans licence), écrit par `scripts/make-test-abr.ts`. En-tête des tips identique octet par octet à un vrai ABR Photoshop (hors longueurs et dimensions). Le test `npm test` génère le même fichier en mémoire et vérifie : aucune tête blanche, taille IP = taille PS.
+
+| Pinceau | Cible |
+|---|---|
+| T01 / T02 | taille 56 px / 300 px (rond dur / doux) |
+| T03 | rondeur 0 % (ex-tête blanche) |
+| T04 / T05 | rondeur 30 % sur image ; angle 90° (flèche) |
+| T06 | carré plein + texture (cas Rectangle Soft) |
+| T07 / T08 | dual brush épars, sans / avec texture (ex-tête blanche) |
+| T09 | taille et opacité à la pression |
+
+À ouvrir dans Photoshop pour confirmer qu'il accepte le fichier, puis convertir et comparer dans IP.
 
 ## À vérifier dans l'app
 

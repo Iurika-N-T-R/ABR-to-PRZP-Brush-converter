@@ -56,7 +56,8 @@ export function roundTip(hardness, size = 64, roundness = 1) {
     const alpha = new Uint8Array(size * h);
     for (let y = 0; y < h; y++) {
         for (let x = 0; x < size; x++) {
-            const d = Math.hypot(x + 0.5 - r, (y + 0.5 - h / 2) / roundness) / r;
+            // Normalised by the real height: PS roundness 0% gives a 1 px line, not 0/0.
+            const d = Math.hypot(x + 0.5 - r, ((y + 0.5 - h / 2) * size) / h) / r;
             alpha[y * size + x] = Math.round(255 * Math.min(1, Math.max(0, (1 - d) / edge)));
         }
     }
@@ -103,17 +104,22 @@ export function maskWithTip(head, mask, ratio, spacing = 1) {
             }
         }
     };
-    if (mw >= W && mh >= H)
-        stamp(W / 2, H / 2); // one second-tip stamp already covers the whole head
-    else {
-        let seed = 12345; // fixed seed: the same ABR always gives the same brush
-        const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647 - 0.5;
-        const sx = mw * Math.min(1, Math.max(0.25, spacing)), sy = (sx * mh) / mw;
-        for (let cy = 0; cy < H + sy; cy += sy)
-            for (let cx = 0; cx < W + sx; cx += sx)
-                stamp(cx + rnd() * sx, cy + rnd() * sy);
+    // Like a horizontal PS stroke: the second tip is swept across the head at its own spacing, so its stamps pile up
+    // into streaks. A single stamp of a sparse second tip times a sparse head would leave the head empty (white).
+    let seed = 12345; // fixed seed: the same ABR always gives the same brush
+    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647 - 0.5;
+    // ponytail: spacing floored at 5% to bound the work; denser PS spacing looks the same once stamps overlap.
+    const sx = mw * Math.min(1, Math.max(0.05, spacing));
+    for (let cy = Math.min(H, mh) / 2; cy < H; cy += mh * 0.75) {
+        for (let cx = -mw / 2; cx < W + mw / 2; cx += sx)
+            stamp(cx, cy + rnd() * mh * 0.25);
     }
-    return { ...head, alpha: head.alpha.map((a, i) => Math.round(a * cover[i])) };
+    // A static head can't rebuild what PS's overlapping stamps do: keep at least half the ink so the tip shape
+    // always shows, with the second tip as a modulation (alpha × (1 - k + k × cover)).
+    let ink = 0, kept = 0;
+    head.alpha.forEach((a, i) => { ink += a; kept += a * cover[i]; });
+    const r = ink ? kept / ink : 1, k = r >= 0.5 ? 1 : 0.5 / (1 - r);
+    return { ...head, alpha: head.alpha.map((a, i) => Math.round(a * (1 - k + k * cover[i]))) };
 }
 // A tip used as a texture (dual brush stand-in): painted areas white, like the high points of a PS height texture.
 export function tipAsPattern(tip) {

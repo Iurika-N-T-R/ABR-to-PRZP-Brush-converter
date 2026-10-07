@@ -31,6 +31,10 @@ export function toProperties(b, headPng, texturePng) {
         if (b.texture.fromTip)
             t['scale-size'] = true;
     }
+    // CAL 6: paint-size 47 × size-maximum 4.4 shows 773 px, so the app's size ≈ 3.74 × paint-size × size-maximum.
+    // ponytail: linear fit from one reading (plus "~500 px" for the template's 50.4 × 3); recalibrate with more readings.
+    if (b.size)
+        p['stroke-properties']['paint-size'] = b.size / (3.74 * p['stroke-properties']['size-maximum']);
     // Paired pack (Syntetyc Environment, same author for PS and IP): PS 1% (its minimum) became IP 0.005 (its minimum)
     // in 8/10 brushes, the overall median ratio is 0.5. IP range 0.005..2.
     // IP stamps once per step; PS "Count" stamps n times, so n× tighter spacing keeps the same density.

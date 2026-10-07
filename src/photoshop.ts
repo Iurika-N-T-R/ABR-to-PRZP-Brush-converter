@@ -86,6 +86,7 @@ export function toUniversal(ps: ParsedBrush, { tips, patterns }: Pick<ParsedAbr,
     const depth = dyn(tex?.depthDynamics, 'texture depthDynamics');
     const brush: UniversalBrush = {
         name: ps.name,
+        size: shape.size,
         spacing: shape.spacing,
         angle: shape.angle ?? 0,
         roundness: 'roundness' in shape ? shape.roundness : 1,

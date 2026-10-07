@@ -10,6 +10,7 @@ export interface Dynamics {
 
 export interface UniversalBrush {
     name: string;
+    size?: number; // tip diameter in px
     spacing: number; // fraction of tip diameter
     angle: number; // degrees
     roundness: number; // 0..1

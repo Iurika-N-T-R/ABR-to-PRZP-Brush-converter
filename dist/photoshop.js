@@ -67,6 +67,7 @@ export function toUniversal(ps, { tips, patterns }) {
     const depth = dyn(tex?.depthDynamics, 'texture depthDynamics');
     const brush = {
         name: ps.name,
+        size: shape.size,
         spacing: shape.spacing,
         angle: shape.angle ?? 0,
         roundness: 'roundness' in shape ? shape.roundness : 1,
