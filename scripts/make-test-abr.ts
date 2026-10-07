@@ -65,9 +65,10 @@ const patt = (p: Img) => {
 };
 
 // ---- Brush settings ----
-type Ctl = 'off' | 'pressure';
+const CONTROLS = ['off', 'fade', 'pen pressure', 'pen tilt', 'stylus wheel', 'initial direction', 'direction', 'initial rotation', 'rotation'];
+type Ctl = 'off' | 'pen pressure' | 'pen tilt' | 'direction' | 'rotation';
 const dyn = (control: Ctl = 'off', minimum = 0, jitter = 0, steps = 25) =>
-    obj('brVr', [['bVTy', long(control === 'pressure' ? 2 : 0)], ['fStp', long(steps)], ['jitter', untf('#Prc', jitter)], ['Mnm ', untf('#Prc', minimum)]]);
+    obj('brVr', [['bVTy', long(CONTROLS.indexOf(control))], ['fStp', long(steps)], ['jitter', untf('#Prc', jitter)], ['Mnm ', untf('#Prc', minimum)]]);
 
 interface Shape { size: number; tip?: Img; hardness?: number; angle?: number; roundness?: number; spacing?: number }
 const shape = (s: Shape) => obj(s.tip ? 'sampledBrush' : 'computedBrush', [
@@ -86,6 +87,10 @@ interface BrushSpec {
     shape: Shape;
     sizePressure?: number; // Minimum Diameter, 0..1
     opacityPressure?: boolean;
+    sizeJitter?: number; // 0..1
+    angle?: { control: Ctl; jitter: number };
+    opacityJitter?: number;
+    scatter?: { amount: number; count: number; bothAxes: boolean }; // amount 1 = 100%
     dual?: { shape: Shape; scatter: number };
     texture?: { pattern: Img; depth: number; scale: number };
 }
@@ -94,8 +99,13 @@ const brushDesc = (b: BrushSpec) => obj('brushPreset', [
     ['Brsh', shape(b.shape)],
     ['useTipDynamics', bool(true)], ['flipX', bool(false)], ['flipY', bool(false)], ['brushProjection', bool(false)],
     ['minimumDiameter', untf('#Prc', (b.sizePressure ?? 0) * 100)], ['minimumRoundness', untf('#Prc', 25)], ['tiltScale', untf('#Prc', 200)],
-    ['szVr', dyn(b.sizePressure === undefined ? 'off' : 'pressure')], ['angleDynamics', dyn()], ['roundnessDynamics', dyn()],
-    ['useScatter', bool(false)],
+    ['szVr', dyn(b.sizePressure === undefined ? 'off' : 'pen pressure', 0, (b.sizeJitter ?? 0) * 100)],
+    ['angleDynamics', dyn(b.angle?.control, 0, (b.angle?.jitter ?? 0) * 100)], ['roundnessDynamics', dyn()],
+    ['useScatter', bool(!!b.scatter)],
+    ...(b.scatter ? [
+        ['Cnt ', doub(b.scatter.count)], ['bothAxes', bool(b.scatter.bothAxes)],
+        ['countDynamics', dyn()], ['scatterDynamics', dyn('off', 0, b.scatter.amount * 100)],
+    ] as [string, Item][] : []),
     ['dualBrush', obj('dualBrush', b.dual ? [
         ['useDualBrush', bool(true)], ['Flip', bool(false)], ['Brsh', shape(b.dual.shape)], ['BlnM', enm('BlnM', 'Mltp')],
         ['useScatter', bool(true)], ['Spcn', untf('#Prc', 100)], ['Cnt ', doub(1)], ['bothAxes', bool(true)],
@@ -111,7 +121,7 @@ const brushDesc = (b: BrushSpec) => obj('brushPreset', [
         ['textureBrightness', long(0)], ['textureContrast', long(0)],
     ] as [string, Item][] : []),
     ['usePaintDynamics', bool(true)],
-    ['prVr', dyn()], ['opVr', dyn(b.opacityPressure ? 'pressure' : 'off')], ['wtVr', dyn()], ['mxVr', dyn()],
+    ['prVr', dyn()], ['opVr', dyn(b.opacityPressure ? 'pen pressure' : 'off', 0, (b.opacityJitter ?? 0) * 100)], ['wtVr', dyn()], ['mxVr', dyn()],
     ['useColorDynamics', bool(false)], ['Wtdg', bool(false)], ['Nose', bool(false)], ['Rpt ', bool(false)],
     ['useBrushSize', bool(true)], ['useBrushPose', bool(false)],
 ]);
@@ -153,8 +163,68 @@ export const TEST_BRUSHES: BrushSpec[] = [
     { name: 'T09 Leaf pressure size+opacity', shape: { size: 150, tip: leaf, spacing: 0.15 }, sizePressure: 0.2, opacityPressure: true },
 ];
 
+// ---- The control set: one setting changes per series, everything else stays at a plain default ----
+const round = (size = 100): Shape => ({ size, hardness: 1 });
+export const CONTROL_BRUSHES: BrushSpec[] = [
+    ...[10, 56, 100, 300, 1000].map((size) => ({ name: `Size ${size}px`, shape: round(size) })),
+    ...[0, 0.5, 1].map((h) => ({ name: `Hardness ${h * 100}%`, shape: { size: 100, hardness: h } })),
+    ...[0.01, 0.25, 1, 2].map((sp) => ({ name: `Spacing ${sp * 100}%`, shape: { ...round(), spacing: sp } })),
+    ...[0, 45, 90, 180].map((a) => ({ name: `Angle ${a}deg (arrow)`, shape: { size: 100, tip: arrow, angle: a, spacing: 1.5 } })),
+    ...[1, 0.5, 0.1, 0].map((r) => ({ name: `Roundness ${r * 100}%`, shape: { ...round(), roundness: r, angle: 0 } })),
+    { name: 'Angle follows direction (arrow)', shape: { size: 100, tip: arrow, spacing: 1.5 }, angle: { control: 'direction', jitter: 0 } },
+    { name: 'Angle follows pen rotation (arrow)', shape: { size: 100, tip: arrow, spacing: 1.5 }, angle: { control: 'rotation', jitter: 0 } },
+    ...[0, 0.5].map((m) => ({ name: `Size pressure min ${m * 100}%`, shape: round(), sizePressure: m })),
+    { name: 'Opacity pressure', shape: round(), opacityPressure: true },
+    ...[0.5, 1].map((j) => ({ name: `Size jitter ${j * 100}%`, shape: round(), sizeJitter: j })),
+    { name: 'Angle jitter 100% (arrow)', shape: { size: 100, tip: arrow, spacing: 1.5 }, angle: { control: 'off', jitter: 1 } },
+    { name: 'Opacity jitter 50%', shape: round(), opacityJitter: 0.5 },
+    ...[1, 3].map((a) => ({ name: `Scatter ${a * 100}%`, shape: round(50), scatter: { amount: a, count: 1, bothAxes: false } })),
+    { name: 'Scatter 100% count 3', shape: round(50), scatter: { amount: 1, count: 3, bothAxes: false } },
+    ...[0.25, 1].map((d) => ({ name: `Texture depth ${d * 100}%`, shape: { ...round(), spacing: 0.05 }, texture: { pattern: paper, depth: d, scale: 1 } })),
+    { name: 'Texture scale 50%', shape: { ...round(), spacing: 0.05 }, texture: { pattern: paper, depth: 1, scale: 0.5 } },
+    { name: 'Dual brush (dots)', shape: { size: 100, tip: leaf, spacing: 0.1 }, dual: { shape: { size: 80, tip: sparse2, spacing: 0.1 }, scatter: 0.5 } },
+];
+
+// What the converter writes, in the units the Infinite Painter brush editor shows (CAL 6 table).
+async function controlSheet(przpBrushes: { fileName: string; data: Buffer }[]) {
+    const { default: JSZip } = await import('jszip');
+    const pct = (v: number) => `${Math.round(v * 100)}%`, deg = (r: number) => `${Math.round((r * 180) / Math.PI)}°`;
+    const rows = await Promise.all(przpBrushes.map(async (b, i) => {
+        const p = JSON.parse(await (await JSZip.loadAsync(b.data)).file('properties.json')!.async('string'));
+        const s = p['stroke-properties'], h = p['head-properties'], j = p['jitter-properties'], d = p['dynamics-properties'], t = p['texture-properties'];
+        const on = Object.keys(d).filter((k) => k.includes(' - effects ') && d[k]).join(', ');
+        const ip = [
+            `Taille ${Math.round(3.74 * s['paint-size'] * s['size-maximum'])} px`, `Espacement ${pct(h.spacing)}`, `Angle ${deg(h.angle)}`,
+            p['source-properties']['custom-head'] ? 'pointe image' : `Douceur ${pct(h.softness)}`,
+            h.rotation ? 'Rotation 100' : '', h['use-trajectory'] ? 'Rotation du stylet' : '',
+            j.size ? `Var. taille ${pct(j.size)}` : '', j.angle ? `Var. angle ${Math.round(j.angle * 360)}°` : '',
+            j.flow ? `Var. flux ${pct(j.flow)}` : '', j.scatter ? `Dispersion ${pct(j.scatter)}` : '',
+            p['source-properties']['custom-stroke texture'] ? `Texture Profondeur ${pct(1 - t.pressure)}, Échelle ${pct(t.scale)}` : '',
+            on ? `Dynamique : ${on}` : '',
+            d['pressure - effects size'] ? `Pression taille min ${pct(1 - d['pressure profile - size'][1])}` : '',
+        ].filter(Boolean).join(' · ');
+        return `| ${i + 1} | ${CONTROL_BRUSHES[i]!.name} | ${ip} | |`;
+    }));
+    return `# Pinceaux de contrôle
+
+Un réglage change par série, tout le reste est à une valeur neutre. Pour chaque pinceau : tracer le même trait dans
+Photoshop (\`control.abr\`) et dans Infinite Painter (\`control.przp\`), comparer, noter l'écart dans la dernière colonne.
+La colonne IP donne ce que le convertisseur a écrit, dans les unités de l'éditeur de pinceau d'IP.
+
+| # | Pinceau Photoshop | Valeurs attendues dans IP | Écart constaté |
+|---|---|---|---|
+${rows.join('\n')}
+`;
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-    mkdirSync('test/fixtures', { recursive: true });
+    const { convertAbr } = await import('../src/convert.js');
+    mkdirSync('test/fixtures/control', { recursive: true });
     writeFileSync('test/fixtures/test-brushes.abr', writeAbr(TEST_BRUSHES));
-    console.log('test/fixtures/test-brushes.abr');
+    const control = writeAbr(CONTROL_BRUSHES);
+    const res = await convertAbr(control, 'Control');
+    writeFileSync('test/fixtures/control/control.abr', control);
+    writeFileSync('test/fixtures/control/control.przp', res.pack);
+    writeFileSync('test/fixtures/control/README.md', await controlSheet(res.brushes));
+    console.log('test/fixtures/test-brushes.abr, test/fixtures/control/{control.abr,control.przp,README.md}');
 }
