@@ -15,6 +15,7 @@
     "build": "tsc",
     "start": "tsx src/cli.ts",
     "test": "node --import tsx --test test/*.test.ts",
+    "test-abr": "tsx scripts/make-test-abr.ts",
     "build:web": "esbuild src/convert.ts --bundle --format=esm --minify --outfile=docs/app.js --inject:scripts/web-shims.js --alias:node:crypto=./scripts/web-shims.js --alias:pngjs=pngjs/browser.js"
   },
   "dependencies": {

@@ -12,7 +12,7 @@ import type { ParsedBrush } from '../src/abr-reader.js';
 
 test('toProperties maps universal fields onto the IP template', () => {
     const p = toProperties({
-        name: 'ink', spacing: 5, angle: 0, roundness: 1,
+        name: 'ink', size: 56, spacing: 5, angle: 0, roundness: 1,
         sizeDynamics: { control: 'pressure', jitter: 0.3, minimum: 0 },
         opacityDynamics: { control: 'tilt', jitter: 0, minimum: 0 },
         scatter: { amount: 2, count: 1 },
@@ -21,6 +21,8 @@ test('toProperties maps universal fields onto the IP template', () => {
     assert.equal(p['display-name'], 'ink');
     assert.equal(p['source-properties']['custom-head'].slice(0, 16), 'ba80a53f981c4d0d'); // blake2b512('abc')
     assert.equal(p['head-properties'].spacing, 2);
+    // 56 px in PS shows ~56 px in the app (3.74 px per paint-size unit, × size-maximum)
+    assert.equal(Math.round(3.74 * p['stroke-properties']['paint-size'] * p['stroke-properties']['size-maximum']), 56);
     assert.equal(p['jitter-properties'].size, 0.3);
     assert.equal(p['jitter-properties'].scatter, 0.2); // PS 200% × 0.1
     assert.equal(d['pressure - effects size'], true);
@@ -78,6 +80,8 @@ test('tip transforms: roundness squashes, flip mirrors, dual mask only removes p
 
     const ellipse = roundTip(1, 64, 0.5);
     assert.deepEqual([ellipse.width, ellipse.height], [64, 32]);
+    const line = roundTip(1, 64, 0); // PS roundness 0% = a 1 px line, it used to come out empty (NaN)
+    assert.ok(line.height === 1 && line.alpha[32] === 255);
 
     const head = roundTip(1, 64);
     const solid = { id: 'm', width: 4, height: 4, alpha: new Uint8Array(16).fill(255) };
@@ -85,6 +89,9 @@ test('tip transforms: roundness squashes, flip mirrors, dual mask only removes p
     const holed = maskWithTip(head, roundTip(1, 16), 0.25);
     assert.ok(holed.alpha.every((a, i) => a <= head.alpha[i]!), 'masking never adds paint');
     assert.ok(holed.alpha.some((a, i) => a < head.alpha[i]!), 'gaps between second-tip stamps remove paint');
+    const ink = (t: { alpha: Uint8Array }) => t.alpha.reduce((s, a) => s + a, 0);
+    const empty = { id: 'e', width: 4, height: 4, alpha: new Uint8Array(16) };
+    assert.ok(ink(maskWithTip(head, empty, 1)) >= ink(head) / 2 - 64, 'a sparse second tip never empties the head');
 });
 
 test('texture brightness/contrast are baked into the texture image', () => {
@@ -179,4 +186,23 @@ test('converts Size Flow Gang: sampled + round brushes, textures, pack', { skip:
     const pack = await JSZip.loadAsync(res.pack);
     const index = JSON.parse(await pack.file('index.json')!.async('string'));
     assert.equal(index['brush-folders'][0].brushes.length, 14);
+});
+
+// Generated brushes (scripts/make-test-abr.ts): ours, so this runs everywhere, unlike the Samples/ test.
+test('test ABR: every head has paint, sizes follow Photoshop', async () => {
+    const { TEST_BRUSHES, writeAbr } = await import('../scripts/make-test-abr.js');
+    const res = await convertAbr(writeAbr(TEST_BRUSHES), 'test');
+    assert.equal(res.report.converted, TEST_BRUSHES.length);
+    for (const [i, b] of res.brushes.entries()) {
+        const zip = await JSZip.loadAsync(b.data);
+        const props = JSON.parse(await zip.file('properties.json')!.async('string'));
+        const s = props['stroke-properties'];
+        assert.equal(Math.round(3.74 * s['paint-size'] * s['size-maximum']), TEST_BRUSHES[i]!.shape.size, b.fileName);
+        const head = zip.file('head');
+        if (!head) continue; // IP's procedural round head
+        const png = PNG.sync.read(await head.async('nodebuffer'));
+        let ink = 0;
+        for (let p = 0; p < png.data.length; p += 4) ink += 255 - png.data[p]!;
+        assert.ok(ink / (png.width * png.height) > 10, `${b.fileName}: head is (almost) white`);
+    }
 });
