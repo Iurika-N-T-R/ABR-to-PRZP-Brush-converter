@@ -37,9 +37,10 @@ export function shrink(data, w, h, ch, max = MAX_SIDE) {
 // PS texture brightness (-150..150) and contrast (-50..100) as a linear pixel adjustment around mid-gray.
 const adjust = (v, brightness, contrast) => Math.min(255, Math.max(0, Math.round((v - 128) * (1 + contrast / 100) + 128 + brightness)));
 // Stroke texture as a plain image, like the textures Infinite Painter imports; grayscale patterns stay 8-bit gray.
-export function patternToPng(p, brightness = 0, contrast = 0) {
+export function patternToPng(p, brightness = 0, contrast = 0, invert = false) {
     const { data: src, width, height } = shrink(p.rgba, p.width, p.height, 4);
-    const data = brightness || contrast ? src.map((v, i) => (i % 4 === 3 ? v : adjust(v, brightness, contrast))) : src;
+    const tone = (v) => (invert ? 255 : 0) + (invert ? -1 : 1) * adjust(v, brightness, contrast);
+    const data = brightness || contrast || invert ? src.map((v, i) => (i % 4 === 3 ? v : tone(v))) : src;
     let gray = true;
     for (let i = 0; gray && i < data.length; i += 4)
         gray = data[i] === data[i + 1] && data[i] === data[i + 2];

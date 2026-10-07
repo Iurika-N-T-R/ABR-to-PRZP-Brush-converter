@@ -38,10 +38,10 @@ export async function convertAbr(buffer: Uint8Array, packName: string): Promise<
     // A pattern is often shared by several brushes: encode each (pattern, adjustment) once.
     const textures = new Map<string, Buffer>();
     const texturePng = (t: NonNullable<UniversalBrush['texture']>) => {
-        const key = `${t.uuid}|${t.brightness}|${t.contrast}|${!!t.fromTip}`;
+        const key = `${t.uuid}|${t.brightness}|${t.contrast}|${t.invert}|${!!t.fromTip}`;
         if (!textures.has(key)) {
             const pattern = t.fromTip ? tipAsPattern(tips.get(t.uuid)!) : patterns.get(t.uuid)!;
-            textures.set(key, patternToPng(pattern, t.brightness, t.contrast));
+            textures.set(key, patternToPng(pattern, t.brightness, t.contrast, t.invert));
         }
         return textures.get(key)!;
     };

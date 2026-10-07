@@ -60,9 +60,10 @@ const adjust = (v: number, brightness: number, contrast: number) =>
     Math.min(255, Math.max(0, Math.round((v - 128) * (1 + contrast / 100) + 128 + brightness)));
 
 // Stroke texture as a plain image, like the textures Infinite Painter imports; grayscale patterns stay 8-bit gray.
-export function patternToPng(p: Pattern, brightness = 0, contrast = 0): Buffer {
+export function patternToPng(p: Pattern, brightness = 0, contrast = 0, invert = false): Buffer {
     const { data: src, width, height } = shrink(p.rgba, p.width, p.height, 4);
-    const data = brightness || contrast ? src.map((v, i) => (i % 4 === 3 ? v : adjust(v, brightness, contrast))) : src;
+    const tone = (v: number) => (invert ? 255 : 0) + (invert ? -1 : 1) * adjust(v, brightness, contrast);
+    const data = brightness || contrast || invert ? src.map((v, i) => (i % 4 === 3 ? v : tone(v))) : src;
     let gray = true;
     for (let i = 0; gray && i < data.length; i += 4) gray = data[i] === data[i + 1] && data[i] === data[i + 2];
     const png = new PNG({ width, height });

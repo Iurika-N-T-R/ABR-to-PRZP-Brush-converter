@@ -29,7 +29,11 @@ export function toProperties(b: UniversalBrush, headPng: Buffer | undefined, tex
         const t = p['texture-properties'];
         // PS goes to 1000%; 2 is the highest IP value seen in samples (slider max).
         t.scale = clamp(b.texture.scale, 0.01, 2);
-        t.invert = b.texture.invert;
+        // The app's Invert button doesn't follow this field (CAL 6): the inversion is baked into the image instead.
+        t.invert = false;
+        // Docs: Fixed tiles the texture like PS does; Rotate (1, the template's) turns it with the stroke, like a dual brush.
+        // ponytail: 0 = Fixed assumed from CAL 6 (1 = "Tourner"); confirm in the app.
+        t.style = b.texture.fromTip ? 1 : 0;
         // CAL 6: the app's texture "Profondeur" slider shows 1 - pressure (pressure 0.55 -> Profondeur 45).
         t.pressure = 1 - b.texture.depth;
         // A dual brush's second tip scales with the brush, as in Photoshop.
@@ -40,10 +44,9 @@ export function toProperties(b: UniversalBrush, headPng: Buffer | undefined, tex
     // ponytail: linear fit from one reading (plus "~500 px" for the template's 50.4 × 3); recalibrate with more readings.
     if (b.size) p['stroke-properties']['paint-size'] = b.size / (3.74 * p['stroke-properties']['size-maximum']);
 
-    // Paired pack (Syntetyc Environment, same author for PS and IP): PS 1% (its minimum) became IP 0.005 (its minimum)
-    // in 8/10 brushes, the overall median ratio is 0.5. IP range 0.005..2.
+    // Docs: IP spacing is 0-200% "of the width of the brush head bitmap", the same unit as PS (CAL 6 agrees).
     // IP stamps once per step; PS "Count" stamps n times, so n× tighter spacing keeps the same density.
-    p['head-properties'].spacing = clamp((b.spacing * 0.5) / Math.max(1, b.scatter?.count ?? 1), 0.005, 2);
+    p['head-properties'].spacing = clamp(b.spacing / Math.max(1, b.scatter?.count ?? 1), 0.005, 2);
     // Radians: the stock Proko Pencil brush stores exactly π.
     p['head-properties'].angle = (b.angle * Math.PI) / 180;
     // Calibration pack, tested with a stylus: `rotation` = 1 turns the head with the stroke direction (CAL 4, circle),

@@ -100,6 +100,7 @@ test('texture brightness/contrast are baked into the texture image', () => {
     assert.equal(px(0, 0), 100);
     assert.equal(px(50, 0), 150);
     assert.equal(px(0, 100), 72); // (100 - 128) * 2 + 128
+    assert.equal(PNG.sync.read(patternToPng({ id: 'p', width: 1, height: 1, rgba }, 0, 0, true)).data[0], 155); // inverted
 });
 
 // Minimal Photoshop brush for mapping tests.
@@ -145,7 +146,7 @@ test('toProperties: scatter count tightens spacing, scatter pressure, dual textu
         scatter: { amount: 1, count: 4, dynamics: { control: 'pressure', jitter: 1, minimum: 0 } },
         texture: { uuid: 't', fromTip: true, scale: 1, depth: 1, invert: false, brightness: 0, contrast: 0 },
     }, Buffer.from('h'), Buffer.from('t'));
-    assert.equal(p['head-properties'].spacing, 0.05); // 0.4 × 0.5 / 4
+    assert.equal(p['head-properties'].spacing, 0.1); // 0.4 / 4
     assert.equal(p['dynamics-properties']['pressure - effects scatter'], true);
     assert.equal(p['texture-properties']['scale-size'], true);
 });

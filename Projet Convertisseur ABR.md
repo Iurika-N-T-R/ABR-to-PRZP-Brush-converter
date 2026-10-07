@@ -102,7 +102,7 @@ Sources : pack « Tree » (2021), « Proko Pencil », « Personnalisé - 3 », p
 | tip computed (rond) | pas de `head`, `softness = 1 − dureté`, `parent = 2` |
 | tip erodible / bristle | approximé en rond (warning) |
 | shape.size (diamètre px) | stroke-properties.paint-size = taille ÷ (3,74 × size-maximum) (CAL 6 : 47 × 4,4 → 773 px ; à recalibrer) |
-| shape.spacing | head-properties.spacing = PS × 0.5, borné 0.005..2 (calibré sur la paire Syntetyc) |
+| shape.spacing | head-properties.spacing = PS tel quel (÷ nombre de tampons), borné 0.005..2 (doc IP : même unité) |
 | shape.angle | head-properties.angle (radians) |
 | angle control « direction » | head-properties.rotation = 1 (suit le trait, testé) |
 | angle control « rotation » (stylet) / « pen tilt » | head-properties.use-trajectory = true (« Rotation du stylet », testé) |
@@ -115,7 +115,9 @@ Sources : pack « Tree » (2021), « Proko Pencil », « Personnalisé - 3 », p
 | colorDynamics hue / saturation / brightness | jitter-properties.color-* (par tip) ou color-start * (par trait, supposé) |
 | wetEdges | stroke-properties.wet-edges = 0.15 (médiane des valeurs vues : 0.07 / 0.15 / 0.40) |
 | texture (pattern) | entrée `texture` + `custom-stroke texture` (hash) |
-| texture.scale / invert | texture-properties.scale / invert |
+| texture.scale | texture-properties.scale |
+| texture.invert | inversion appliquée à l'image (le bouton Inverser de l'app ne suit pas `invert`) |
+| texture (pattern) : style | texture-properties.style = 0 « Fixe » (1 « Tourner » pour un dual brush) |
 | texture.depth | texture-properties.pressure (non vérifié) |
 | texture.depthDynamics pression/tilt | « pressure/tilt - effects texture » |
 
@@ -195,7 +197,7 @@ Même pack, même auteur, en `.abr` (19 pinceaux) et `.przp` (19 pinceaux, même
 * Jitter d'angle ≈ 1:1 (0.52 → 0.5, 0.6 → 0.5).
 
 **Corrigé :**
-* Spacing : IP ≈ PS × 0.5 (PS 1 % → IP 0.005 dans 8 cas sur 10).
+* Spacing : IP ≈ PS × 0.5 (PS 1 % → IP 0.005 dans 8 cas sur 10). Abandonné le 2026-10-07 : choix de l'artiste, la doc IP donne la même unité que PS.
 * Scatter : IP ≈ PS × 0.1 (0.43 → 0.029, 0.67 → 0.30, 3 → 0.32).
 
 **Découvert, pas encore appliqué :**
@@ -350,6 +352,18 @@ Résultat sur 156 pinceaux (Size Flow Gang, Syntetyc x2) : **34 → 154 complets
 | T09 | taille et opacité à la pression |
 
 À ouvrir dans Photoshop pour confirmer qu'il accepte le fichier, puis convertir et comparer dans IP.
+
+## Doc officielle IP (docs.infinitestudio.art, lue le 2026-10-07)
+
+Pages Brush editing + Stroke / Head / Texture / Paint / Special.
+
+* **Taille** : « diamètre de la tête en pixels », plage qui **dépend de la taille du canevas** et de Size Range (0–4, multiplicateur, « affecte la taille réelle »). → Le facteur 3,74 px par unité peut varier selon le canevas : noter la taille du canevas avec chaque mesure.
+* **Espacement** : 0–200 %, « l'unité est la largeur de l'image de la tête » = même unité que PS. → **Le ×0,5 est supprimé** (il venait des choix de l'artiste Syntetyc).
+* **Style de texture** : Fixe (tuiles côte à côte, comme PS), Tourner (alignées sur le trait), Déformer. → Patterns PS en **Fixe (0)**, dual brush en Tourner (1).
+* **Inverser** (texture et tête) : bouton de la section Source. → Inversion de texture appliquée à l'image.
+* **Rotation** : −100 inverse, 0 fixe, 100 tangente (confirme `rotation = 1` pour « Direction »). Rotation du stylet = angle du stylet.
+* **Variations** : « initiale » = au début du trait, « continue » = à chaque point. → confirme `color-start *` (par trait) et `color-*` (par tampon, « Apply Per Tip » PS).
+* Profondeur de texture : plage 0+ ; Échelle : 0–2 (défaut 1) ; « Échelle d'après la taille » : texture à la taille du pinceau.
 
 ## À vérifier dans l'app
 
