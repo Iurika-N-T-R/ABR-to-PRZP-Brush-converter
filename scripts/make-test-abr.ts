@@ -124,6 +124,15 @@ const brushDesc = (b: BrushSpec) => obj('brushPreset', [
     ['prVr', dyn()], ['opVr', dyn(b.opacityPressure ? 'pen pressure' : 'off', 0, (b.opacityJitter ?? 0) * 100)], ['wtVr', dyn()], ['mxVr', dyn()],
     ['useColorDynamics', bool(false)], ['Wtdg', bool(false)], ['Nose', bool(false)], ['Rpt ', bool(false)],
     ['useBrushSize', bool(true)], ['useBrushPose', bool(false)],
+    // Tool settings saved with the preset, as in real ABRs. Without them Photoshop keeps the current tool's size, smoothing
+    // and pressure override buttons, which hid the size, pressure and opacity jitter series.
+    ['toolOptions', obj('PbTl', [
+        ['brushPreset', bool(true)], ['flow', long(100)], ['Smoo', long(0)], ['Md  ', enm('BlnM', 'Nrml')], ['Opct', long(100)],
+        ['smoothing', bool(false)], ['smoothingValue', doub(0)], ['smoothingRadiusMode', bool(false)],
+        ['smoothingCatchup', bool(true)], ['smoothingCatchupAtEnd', bool(false)], ['smoothingZoomCompensation', bool(true)],
+        ['pressureSmoothing', bool(false)], ['usePressureOverridesSize', bool(false)],
+        ['usePressureOverridesOpacity', bool(false)], ['useLegacy', bool(false)],
+    ])],
 ]);
 
 export function writeAbr(brushes: BrushSpec[]): Buffer {

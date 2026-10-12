@@ -42,7 +42,8 @@ export function toProperties(b: UniversalBrush, headPng: Buffer | undefined, tex
 
     // CAL 6: paint-size 47 × size-maximum 4.4 shows 773 px, so the app's size ≈ 3.74 × paint-size × size-maximum.
     // ponytail: linear fit from one reading (plus "~500 px" for the template's 50.4 × 3); recalibrate with more readings.
-    if (b.size) p['stroke-properties']['paint-size'] = b.size / (3.74 * p['stroke-properties']['size-maximum']);
+    // Control pack: 56-1000 px show exactly, 10 px showed 9 (the app floors the float32 product), so aim 0.01 px high.
+    if (b.size) p['stroke-properties']['paint-size'] = (b.size + 0.01) / (3.74 * p['stroke-properties']['size-maximum']);
 
     // Docs: IP spacing is 0-200% "of the width of the brush head bitmap", the same unit as PS (CAL 6 agrees).
     // IP stamps once per step; PS "Count" stamps n times, so n× tighter spacing keeps the same density.

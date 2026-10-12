@@ -23,6 +23,11 @@ test('toProperties maps universal fields onto the IP template', () => {
     assert.equal(p['head-properties'].spacing, 2);
     // 56 px in PS shows ~56 px in the app (3.74 px per paint-size unit, × size-maximum)
     assert.equal(Math.round(3.74 * p['stroke-properties']['paint-size'] * p['stroke-properties']['size-maximum']), 56);
+    // The app floors a float32 size: 10 px used to show as 9 px (control pack C01).
+    for (const size of [10, 56, 100, 300, 1000]) {
+        const s = toProperties({ name: 'c', size, spacing: 0.25, angle: 0, roundness: 1 }, undefined)['stroke-properties'];
+        assert.equal(Math.floor(Math.fround(3.74 * Math.fround(s['paint-size']) * s['size-maximum'])), size);
+    }
     assert.equal(p['jitter-properties'].size, 0.3);
     assert.equal(p['jitter-properties'].scatter, 0.2); // PS 200% × 0.1
     assert.equal(d['pressure - effects size'], true);
